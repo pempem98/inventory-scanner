@@ -1,0 +1,14 @@
+{
+  "HP": {
+    "LSB_MWF": {
+      "download_250414": "completed",
+      "compare_250413_HP_LSB_MWF.xlsx_250414_HP_LSB_MWF.xlsx": "completed"
+    }
+  },
+  "ATD": {
+    "LSB": {
+      "download_250414": "completed",
+      "compare_250413_ATD_LSB.xlsx_250414_ATD_LSB.xlsx": "completed"
+    }
+  }
+}

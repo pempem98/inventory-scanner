@@ -1,0 +1,22 @@
+{
+    "HP": [
+        {
+            "project_name": "LSB_MWF",
+            "spreadsheet_id": "1JcPb_YG_84qXsxk0rR9OqpjY4bnlDmI_",
+            "gid": "363069565",
+            "key_column": "C",
+            "check_columns": [
+                "I"
+            ]
+        }
+    ],
+    "ATD": {
+        "project_name": "LSB",
+        "spreadsheet_id": "1O_JiM4VD0VlC1X0LmnvX5_eKpLCbzom8",
+        "gid": "1453345957",
+        "key_column": "B",
+        "check_columns": [
+            "H"
+        ]
+    }
+}
