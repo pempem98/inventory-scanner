@@ -1,14 +1,289 @@
 {
-  "HP": {
-    "LSB_MWF": {
-      "download_250414": "completed",
-      "compare_250413_HP_LSB_MWF.xlsx_250414_HP_LSB_MWF.xlsx": "completed"
+  "NewstarLand": {
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "Newway": {
+    "LSB1": {
+      "download_250414": "completed"
+    },
+    "LSB2": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "\u0110\u1ea5t Vi\u1ec7t": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS_MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "MICC": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "MDLand": {
+    "LSB_MGA_MLS_MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "NOVASKY": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "Future Homes": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "HOMEPLUS": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "DDL": {
+    "LSB_L1": {
+      "download_250414": "completed"
+    },
+    "LSB_L2": {
+      "download_250414": "completed"
+    },
+    "LSB_Z1": {
+      "download_250414": "completed"
+    },
+    "LSB_Z2": {
+      "download_250414": "completed"
+    },
+    "MGA_S1": {
+      "download_250414": "completed"
+    },
+    "MGA_S2": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "Phu\u0301c L\u00f4\u0323c": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "EG": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "HDH": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "Bighomes": {
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "THP": {
+    "LSB": {
+      "download_250414": "completed"
+    }
+  },
+  "TL": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "VSL": {
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
     }
   },
   "ATD": {
     "LSB": {
-      "download_250414": "completed",
-      "compare_250413_ATD_LSB.xlsx_250414_ATD_LSB.xlsx": "completed"
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "TPL": {
+    "LSB_MLS_MTS": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    }
+  },
+  "VHS": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "STH": {
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    }
+  },
+  "GALAXY": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MLS_Th\u01b0\u0301_C\u00e2\u0301p": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "AHS": {
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "Tha\u0300nh Pha\u0301t Land": {
+    "MLS_MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "THI\u00caN PHU\u0301C - MAI VI\u00ca\u0323T": {
+    "LSB_MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
+    }
+  },
+  "JOYHOMES": {
+    "LSB": {
+      "download_250414": "completed"
+    },
+    "MGA": {
+      "download_250414": "completed"
+    },
+    "MLS": {
+      "download_250414": "completed"
+    },
+    "MTS": {
+      "download_250414": "completed"
     }
   }
 }

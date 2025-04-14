@@ -98,8 +98,8 @@ class GoogleSheetDownloader:
                 raise Exception("Không có dữ liệu nào được lấy từ sheet.")
 
             # In 10 hàng đầu tiên để debug
-            if len(data) < 10:
-                print(table.prettify())
+            # if len(data) < 10:
+            #     print(table.prettify())
             return data
         except Exception as e:
             raise Exception(f"Lỗi khi parse HTML: {e}")

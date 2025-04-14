@@ -143,16 +143,18 @@ class WorkflowManager:
             
             for config in agent_config.configs:
                 try:
+                    # Tải snapshot hiện tại
+                    current_file = self._download_snapshot(agent_config.agent_name, config, current_date)
+                    if not current_file:
+                        logging.warning(f"Bỏ qua so sánh cho {agent_config.agent_name}/{config.project_name}: không có snapshot current.")
+                        continue
+
                     # Giả định file predecessor đã có sẵn
                     predecessor_file = self._get_file_name(agent_config.agent_name, config, predecessor_date)
                     if not os.path.exists(predecessor_file):
                         logging.warning(f"Bỏ qua so sánh cho {agent_config.agent_name}/{config.project_name}: không tìm thấy snapshot predecessor {predecessor_file}.")
                         continue
                     
-                    current_file = self._download_snapshot(agent_config.agent_name, config, current_date)
-                    if not current_file:
-                        logging.warning(f"Bỏ qua so sánh cho {agent_config.agent_name}/{config.project_name}: không có snapshot current.")
-                        continue
                     
                     self._compare_snapshots(agent_config.agent_name, config, predecessor_file, current_file)
                     
