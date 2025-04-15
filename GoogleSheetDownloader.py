@@ -1,27 +1,49 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+import numpy as np
 from typing import List, Optional
+from requests_kerberos import HTTPKerberosAuth
+from urllib3.util import parse_url
+
+pd.set_option('future.no_silent_downcasting', True)
+requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+
+class HTTPAdapterWithProxyKerberosAuth(requests.adapters.HTTPAdapter):
+    def proxy_headers(self, proxy):
+        headers = {}
+        auth = HTTPKerberosAuth()
+        negotiate_details = auth.generate_request_header(None, parse_url(proxy).host, is_preemptive=True)
+        headers['Proxy-Authorization'] = negotiate_details
+        return headers
 
 class GoogleSheetDownloader:
     """Class để tải và xử lý Google Sheet từ URL công khai."""
 
-    def __init__(self, spreadsheet_id: str, gid: str):
+    def __init__(self, spreadsheet_id: str, gid: str, proxies=None):
         """
         Khởi tạo với ID của Google Sheet và worksheet.
 
         Args:
             spreadsheet_id: ID của Google Sheet.
             gid: ID của worksheet.
+            proxies: Dictionary chứa cấu hình proxy (nếu có).
         """
         self.spreadsheet_id = spreadsheet_id
         self.gid = gid
+        session = requests.Session()
+        if proxies is not None:
+            session.proxies = proxies
+            session.mount('http://', HTTPAdapterWithProxyKerberosAuth())
+            session.mount('https://', HTTPAdapterWithProxyKerberosAuth())
+        self.session = session
 
     def fetch_html(self) -> str:
         """Tải nội dung HTML từ Google Sheet qua /htmlview."""
         html_url = f'https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/htmlview?gid={self.gid}'
+        print(f"Goto: {html_url}")
         try:
-            response = requests.get(html_url)
+            response = self.session.get(html_url, verify=False)
             if response.status_code == 200:
                 return response.text
             raise Exception(f"Không thể truy cập sheet. Mã lỗi: {response.status_code}")
@@ -84,8 +106,7 @@ class GoogleSheetDownloader:
                         while len(grid) <= r:
                             grid.append([None] * max_cols)
 
-                        for c in range(col_idx, min(col_idx + colspan, max_cols)):
-                            grid[r][c] = cell_text
+                        grid[r][col_idx] = cell_text
 
                     col_idx += colspan
 
@@ -105,12 +126,22 @@ class GoogleSheetDownloader:
             raise Exception(f"Lỗi khi parse HTML: {e}")
 
     def process_data(self, data: List[List[str]]) -> Optional[pd.DataFrame]:
-        """Xử lý dữ liệu: bỏ hàng 1, cột 1, trả về DataFrame."""
+        """Xử lý dữ liệu: bỏ hàng 1, cột 1, xóa các hàng rỗng ở cuối, trả về DataFrame."""
         try:
-            df = pd.DataFrame(data[1:])
+            df = pd.DataFrame(data[1:])  # Bỏ hàng đầu tiên
             if df.empty:
                 return None
-            df = df.iloc[:, 1:]
+            df = df.iloc[:, 1:]  # Bỏ cột đầu tiên
+            if df.empty:
+                return None
+            
+            # Thay thế chuỗi rỗng hoặc khoảng trắng bằng NaN
+            df = df.replace(r'^\s*$', np.nan, regex=True)
+            df = df.replace('', np.nan)
+            
+            # Xóa các hàng mà tất cả giá trị đều là NaN
+            df = df.dropna(how='all')
+            
             if df.empty:
                 return None
             return df
@@ -118,21 +149,24 @@ class GoogleSheetDownloader:
             raise Exception(f"Lỗi khi xử lý dữ liệu: {e}")
 
     def save_to_excel(self, df: pd.DataFrame, output_file: str) -> None:
-        """Lưu DataFrame thành file XLSX, không có index và header."""
+        """Lưu DataFrame thành file XLSX hoặc CSV, không có index và header."""
         try:
-            df.to_excel(output_file, index=False, header=False)
+            if output_file.endswith(".csv"):
+                df.to_csv(output_file, index=False, header=False, encoding="utf-8")
+            else:
+                df.to_excel(output_file, index=False, header=False, engine="openpyxl")
             print(f"Đã lưu dữ liệu vào {output_file}")
         except Exception as e:
-            raise Exception(f"Lỗi khi lưu file XLSX: {e}")
+            raise Exception(f"Lỗi khi lưu file: {e}")
 
     def download(self, output_file: str = 'downloaded_sheet.xlsx') -> None:
-        """Tải Google Sheet, bỏ hàng 1, cột 1, lưu thành XLSX."""
+        """Tải Google Sheet, bỏ hàng 1, cột 1, xóa hàng rỗng ở cuối, lưu thành file."""
         try:
             html_content = self.fetch_html()
             data = self.parse_html_to_data(html_content)
             df = self.process_data(data)
             if df is None:
-                print("Dữ liệu rỗng sau khi bỏ hàng 1 và cột 1.")
+                print("Dữ liệu rỗng sau khi xử lý.")
                 return
             self.save_to_excel(df, output_file)
         except Exception as e:
@@ -141,8 +175,13 @@ class GoogleSheetDownloader:
 
 # Chạy với thông tin từ URL
 if __name__ == "__main__":
+    proxies = {
+        'http': 'http://rb-proxy-apac.bosch.com:8080',
+        'https': 'http://rb-proxy-apac.bosch.com:8080'
+    }
     downloader = GoogleSheetDownloader(
-        spreadsheet_id='1wxSFdMeIwHcijdeqOj0oFQcFGqi_8RFT',
-        gid='723417714'
+        spreadsheet_id='1O_JiM4VD0VlC1X0LmnvX5_eKpLCbzom8',
+        gid='1453345957',
+        proxies=proxies
     )
-    downloader.download()
+    downloader.download(output_file="downloaded_sheet.csv")

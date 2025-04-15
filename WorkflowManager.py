@@ -85,6 +85,8 @@ class WorkflowManager:
     def _download_snapshot(self, agent_name: str, config: AgentConfig.Config, date: str) -> str:
         """Tải Google Sheet và lưu snapshot."""
         file_name = self._get_file_name(agent_name, config, date)
+
+        print(f"Đại lý {agent_name} - Dự án {config.project_name}")
         
         # Tạo khóa trạng thái dựa trên agent_name và project_name
         agent_state = self.state.get(agent_name, {}).get(config.project_name, {})
@@ -172,8 +174,7 @@ class WorkflowManager:
             for project_name, agent_state in agent_data.items():
                 new_agent_state = {}
                 for key, value in agent_state.items():
-                    # Bỏ qua các khóa download_{current_date} và compare_
-                    if key != f'download_{current_date}' and not key.startswith('compare_'):
+                    if not current_date in key:
                         new_agent_state[key] = value
                 if new_agent_state:
                     new_agent_data[project_name] = new_agent_state

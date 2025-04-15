@@ -14,3 +14,4 @@ snapshots
 *.coverage
 *.cover
 *.xlsx
+./state.json

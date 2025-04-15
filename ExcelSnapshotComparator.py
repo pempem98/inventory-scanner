@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import re
 from typing import List, Dict, Any, Tuple
@@ -53,12 +54,13 @@ class ExcelSnapshotComparator:
             valid_mask = (
                 df['key'].str.match(self.allowed_key_pattern) &
                 (df['key'] != '') &
+                (df['key'] != 'nan') &
                 df['key'].notna()
             )
 
             invalid_keys = df[~valid_mask]['key'].dropna().tolist()
-            if invalid_keys:
-                print(f"Đã bỏ qua các key không hợp lệ trong {file_name}: {invalid_keys}")
+            # if invalid_keys:
+            #     print(f"Đã bỏ qua các key không hợp lệ trong {file_name}: {invalid_keys}")
 
             return df[valid_mask].copy()
         except Exception as e:
