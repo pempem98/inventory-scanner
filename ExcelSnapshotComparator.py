@@ -145,6 +145,7 @@ class ExcelSnapshotComparator:
             df_current = self.validate_keys(df_current, self.file_current)
             if df_predecessor.empty or df_current.empty:
                 print("Một hoặc cả hai file không có key hợp lệ để so sánh.")
+                print("\n=======================")
                 return
             changes, new_keys, missing_keys = self.compare_snapshots(df_predecessor, df_current)
             self.print_comparison_results(changes, new_keys, missing_keys)

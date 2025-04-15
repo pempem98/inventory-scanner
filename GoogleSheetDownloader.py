@@ -172,6 +172,7 @@ class GoogleSheetDownloader:
         except Exception as e:
             print(f"Lỗi: {e}")
             print("Kiểm tra xem sheet có công khai hoặc cho phép xem qua link không.")
+            print("\n=======================")
 
 # Chạy với thông tin từ URL
 if __name__ == "__main__":

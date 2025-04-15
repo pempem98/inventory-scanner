@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timedelta
 import logging
 from typing import List, Dict, Any
+from inputimeout import inputimeout, TimeoutOccurred  # Thêm import này
 from AgentConfig import AgentConfig
 from GoogleSheetDownloader import GoogleSheetDownloader
 from ExcelSnapshotComparator import ExcelSnapshotComparator
@@ -79,7 +80,8 @@ class WorkflowManager:
     def _get_file_name(self, agent_name: str, config: AgentConfig.Config, date: str) -> str:
         """Tạo tên file theo định dạng snapshots/YYMMDD_{agent_name}_{project_name}.xlsx."""
         clean_project_name = config.project_name.replace(' ', '_')
-        file_name = f"{date}_{agent_name}_{clean_project_name}.xlsx"
+        file_extension = self.workflow_config.get('snapshot_file_extension', '.csv')
+        file_name = f"{date}_{agent_name}_{clean_project_name}{file_extension}"
         return os.path.join(self.snapshot_dir, file_name)
     
     def _download_snapshot(self, agent_name: str, config: AgentConfig.Config, date: str) -> str:
@@ -149,12 +151,14 @@ class WorkflowManager:
                     current_file = self._download_snapshot(agent_config.agent_name, config, current_date)
                     if not current_file:
                         logging.warning(f"Bỏ qua so sánh cho {agent_config.agent_name}/{config.project_name}: không có snapshot current.")
+                        print("\n=======================")
                         continue
 
                     # Giả định file predecessor đã có sẵn
                     predecessor_file = self._get_file_name(agent_config.agent_name, config, predecessor_date)
                     if not os.path.exists(predecessor_file):
                         logging.warning(f"Bỏ qua so sánh cho {agent_config.agent_name}/{config.project_name}: không tìm thấy snapshot predecessor {predecessor_file}.")
+                        print("\n=======================")
                         continue
                     
                     
@@ -162,6 +166,7 @@ class WorkflowManager:
                     
                 except Exception as e:
                     logging.error(f"Lỗi tổng quát khi xử lý {agent_config.agent_name}/{config.project_name}: {e}")
+                    print("\n=======================")
                     continue
     
     def reset_state(self) -> None:
@@ -187,9 +192,21 @@ class WorkflowManager:
 
 # Chạy ví dụ
 if __name__ == "__main__":
-    need_reset = input("Bạn có muốn reset trạng thái không? (y/n): ").strip().lower()
+    def get_user_input_with_timeout(prompt, timeout, default):
+        try:
+            user_input = inputimeout(prompt=prompt, timeout=timeout)
+            return user_input.strip().lower()
+        except TimeoutOccurred:
+            print(f"\nHết thời gian, sử dụng giá trị mặc định: {default}")
+            return default
+
     try:
         manager = WorkflowManager(config_file='project_config.json')
+        need_reset = get_user_input_with_timeout(
+            prompt="Bạn có muốn reset trạng thái không? (y/n): ",
+            timeout=5,  # Timeout 5 giây
+            default="n"  # Mặc định là 'n'
+        )
         if need_reset == 'y':
             manager.reset_state()
         manager.run()
