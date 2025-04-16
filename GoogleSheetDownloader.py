@@ -134,14 +134,14 @@ class GoogleSheetDownloader:
             df = df.iloc[:, 1:]  # Bỏ cột đầu tiên
             if df.empty:
                 return None
-            
+
             # Thay thế chuỗi rỗng hoặc khoảng trắng bằng NaN
             df = df.replace(r'^\s*$', np.nan, regex=True)
             df = df.replace('', np.nan)
-            
+
             # Xóa các hàng mà tất cả giá trị đều là NaN
             df = df.dropna(how='all')
-            
+
             if df.empty:
                 return None
             return df

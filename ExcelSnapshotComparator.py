@@ -37,7 +37,10 @@ class ExcelSnapshotComparator:
     def read_excel_file(self, file_path: str) -> pd.DataFrame:
         """Đọc file Excel, trả về DataFrame."""
         try:
-            df = pd.read_excel(file_path, header=None)
+            if file_path.endswith(".csv"):
+                df = pd.read_csv(file_path, header=None)
+            else:
+                df = pd.read_excel(file_path, header=None)
             if df.empty:
                 raise Exception(f"File {file_path} rỗng.")
             return df

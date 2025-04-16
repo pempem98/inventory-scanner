@@ -1,6 +1,10 @@
 __pycache__
+.venv
+.vscode
 venv
-snapshots
+backup
+current
+predecessor
 *.pyc
 *.pyo
 *.pyd
@@ -14,4 +18,4 @@ snapshots
 *.coverage
 *.cover
 *.xlsx
-./state.json
+state.json
