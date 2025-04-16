@@ -234,25 +234,10 @@ class WorkflowManager:
                     continue
 
     def reset_state(self) -> None:
-        """Xóa trạng thái cho snapshot current và trạng thái so sánh."""
-        current_date = datetime.now().strftime('%y%m%d')
-        new_state = {}
-
-        for agent_name, agent_data in self.state.items():
-            new_agent_data = {}
-            for project_name, agent_state in agent_data.items():
-                new_agent_state = {}
-                for key, value in agent_state.items():
-                    if False:
-                        new_agent_state[key] = value
-                if new_agent_state:
-                    new_agent_data[project_name] = new_agent_state
-            if new_agent_data:
-                new_state[agent_name] = new_agent_data
-
-        self.state = new_state
+        """Xóa toàn bộ trạng thái trong state.json."""
+        self.state = {}
         self._save_state()
-        logging.info("Đã reset trạng thái cho snapshot current và trạng thái so sánh.")
+        logging.info("Đã xóa toàn bộ trạng thái trong state.json.")
 
 # Chạy ví dụ
 if __name__ == "__main__":
