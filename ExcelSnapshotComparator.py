@@ -2,11 +2,12 @@ import numpy as np
 import pandas as pd
 import re
 from typing import List, Dict, Any, Tuple
+import logging
 
 class ExcelSnapshotComparator:
     """Class để so sánh hai snapshot Excel, kiểm tra thay đổi dựa trên cột key."""
 
-    def __init__(self, file_predecessor: str, file_current: str, key_col: str, check_cols: List[str], allowed_key_pattern: str = r'^[A-Za-z0-9_]+$'):
+    def __init__(self, file_predecessor: str, file_current: str, key_col: str, check_cols: List[str], allowed_key_pattern: str = r'^[A-Za-z0-9._-]+$'):
         """
         Khởi tạo với thông tin file và cột.
 
@@ -45,13 +46,15 @@ class ExcelSnapshotComparator:
                 raise Exception(f"File {file_path} rỗng.")
             return df
         except Exception as e:
-            raise Exception(f"Lỗi khi đọc file {file_path}: {e}")
+            logging.error(f"Lỗi khi đọc file {file_path}: {e}")
+            return pd.DataFrame()
 
     def validate_keys(self, df: pd.DataFrame, file_name: str) -> pd.DataFrame:
         """Lọc các key hợp lệ dựa trên regex."""
         try:
-            if self.key_col < 0 or self.key_col >= df.shape[1]:
-                raise Exception(f"Cột key không tồn tại trong {file_name}.")
+            if df.empty or self.key_col < 0 or self.key_col >= df.shape[1]:
+                logging.warning(f"Cột key không tồn tại hoặc file rỗng trong {file_name}.")
+                return pd.DataFrame()
 
             df['key'] = df[self.key_col].astype(str)
             valid_mask = (
@@ -62,22 +65,38 @@ class ExcelSnapshotComparator:
             )
 
             invalid_keys = df[~valid_mask]['key'].dropna().tolist()
-            # if invalid_keys:
-            #     print(f"Đã bỏ qua các key không hợp lệ trong {file_name}: {invalid_keys}")
+            if invalid_keys:
+                logging.info(f"Đã bỏ qua các key không hợp lệ trong {file_name}: {invalid_keys}")
 
             return df[valid_mask].copy()
         except Exception as e:
-            raise Exception(f"Lỗi khi lọc key trong {file_name}: {e}")
+            logging.error(f"Lỗi khi lọc key trong {file_name}: {e}")
+            return pd.DataFrame()
 
-    def compare_snapshots(self, df_predecessor: pd.DataFrame, df_current: pd.DataFrame) -> Tuple[List[Dict[str, Any]], List[Any], List[Any]]:
-        """So sánh hai snapshot dựa trên cột key và các cột kiểm tra."""
+    def compare_snapshots(self, df_predecessor: pd.DataFrame, df_current: pd.DataFrame) -> Dict[str, Any]:
+        """
+        So sánh hai snapshot dựa trên cột key và các cột kiểm tra.
+
+        Args:
+            df_predecessor: DataFrame của snapshot cũ.
+            df_current: DataFrame của snapshot hiện tại.
+
+        Returns:
+            Dictionary chứa added, removed, changed.
+        """
         try:
+            if df_predecessor.empty or df_current.empty:
+                logging.warning("Một hoặc cả hai DataFrame rỗng.")
+                return {'added': [], 'removed': [], 'changed': []}
+
             if not self.check_cols or any(c < 0 or c >= df_predecessor.shape[1] or c >= df_current.shape[1] for c in self.check_cols):
-                raise Exception("Cột kiểm tra không hợp lệ.")
+                logging.warning("Cột kiểm tra không hợp lệ.")
+                return {'added': [], 'removed': [], 'changed': []}
 
             keys_predecessor = set(df_predecessor['key'])
             keys_current = set(df_current['key'])
 
+            # Sử dụng key gốc (đã chứa prefix như C3_)
             new_keys = list(keys_current - keys_predecessor)
             missing_keys = list(keys_predecessor - keys_current)
             common_keys = keys_predecessor.intersection(keys_current)
@@ -96,13 +115,18 @@ class ExcelSnapshotComparator:
                         changes.append({
                             'key': key,
                             'column': self.index_to_excel_col(col),
-                            'old_value': old_value,
-                            'new_value': new_value
+                            'before': old_value if pd.notnull(old_value) else 'Unknown',
+                            'after': new_value if pd.notnull(new_value) else 'Unknown'
                         })
 
-            return changes, new_keys, missing_keys
+            return {
+                'added': new_keys,
+                'removed': missing_keys,
+                'changed': changes
+            }
         except Exception as e:
-            raise Exception(f"Lỗi khi so sánh snapshot: {e}")
+            logging.error(f"Lỗi khi so sánh snapshot: {e}")
+            return {'added': [], 'removed': [], 'changed': []}
 
     @staticmethod
     def index_to_excel_col(index: int) -> str:
@@ -122,7 +146,7 @@ class ExcelSnapshotComparator:
             print("\nCác thay đổi trong dữ liệu:")
             for change in changes:
                 print(f"Key: {change['key']}, Cột: {change['column']}, "
-                      f"Giá trị cũ: {change['old_value']}, Giá trị mới: {change['new_value']}")
+                      f"Giá trị cũ: {change['before']}, Giá trị mới: {change['after']}")
         else:
             print("\nKhông có thay đổi trong các cột kiểm tra.")
         if new_keys:
@@ -139,29 +163,44 @@ class ExcelSnapshotComparator:
             print("\nKhông có key bị mất.")
         print("\n=======================")
 
-    def compare(self) -> None:
-        """Hàm chính: So sánh hai snapshot và in kết quả."""
+    def compare(self, project_name: str = 'Unknown') -> Dict[str, Any]:
+        """
+        Hàm chính: So sánh hai snapshot và trả về kết quả.
+
+        Args:
+            project_name: Tên dự án (dùng để tương thích, không ảnh hưởng logic).
+
+        Returns:
+            Dictionary chứa added, removed, changed.
+        """
         try:
             df_predecessor = self.read_excel_file(self.file_predecessor)
             df_current = self.read_excel_file(self.file_current)
             df_predecessor = self.validate_keys(df_predecessor, self.file_predecessor)
             df_current = self.validate_keys(df_current, self.file_current)
+
             if df_predecessor.empty or df_current.empty:
-                print("Một hoặc cả hai file không có key hợp lệ để so sánh.")
-                print("\n=======================")
-                return
-            changes, new_keys, missing_keys = self.compare_snapshots(df_predecessor, df_current)
-            self.print_comparison_results(changes, new_keys, missing_keys)
+                logging.warning("Một hoặc cả hai file không có key hợp lệ để so sánh.")
+                self.print_comparison_results([], [], [])
+                return {'added': [], 'removed': [], 'changed': []}
+
+            result = self.compare_snapshots(df_predecessor, df_current)
+            self.print_comparison_results(result['changed'], result['added'], result['removed'])
+            return result
         except Exception as e:
-            print(f"Lỗi: {e}")
+            logging.error(f"Lỗi khi so sánh: {e}")
+            self.print_comparison_results([], [], [])
+            return {'added': [], 'removed': [], 'changed': []}
 
 # Chạy ví dụ
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     comparator = ExcelSnapshotComparator(
-        file_predecessor='./snapshots/250413_ATD_LSB.xlsx',
-        file_current='./snapshots/250414_ATD_LSB.xlsx',
-        key_col='A',
-        check_cols=['H'],
+        file_predecessor='./predecessor/NewstarLand_MLS.csv',
+        file_current='./current/NewstarLand_MLS.csv',
+        key_col='B',
+        check_cols=['F'],
         allowed_key_pattern='^[A-Za-z0-9_.-]+$'
     )
-    comparator.compare()
+    result = comparator.compare(project_name='C3_LSB')
+    print(result)

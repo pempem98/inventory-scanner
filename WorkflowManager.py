@@ -8,6 +8,7 @@ from inputimeout import inputimeout, TimeoutOccurred
 from AgentConfig import AgentConfig
 from GoogleSheetDownloader import GoogleSheetDownloader
 from ExcelSnapshotComparator import ExcelSnapshotComparator
+from ReportGenerator import ReportGenerator
 
 # Thiết lập logging với encoding UTF-8
 logging.basicConfig(
@@ -80,13 +81,19 @@ class WorkflowManager:
 
     def _load_workflow_config(self) -> Dict[str, Any]:
         """Đọc file config workflow."""
-        default_config = {'allowed_key_pattern': r'^[A-Za-z0-9_.-]+$'}
+        default_config = {
+            'allowed_key_pattern': r'^[A-Za-z0-9_.-]+$',
+            'snapshot_file_extension': '.csv',
+            'project_prefix': {}
+        }
         try:
             if os.path.exists(self.workflow_config_file):
                 with open(self.workflow_config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
                 if not isinstance(config, dict):
                     raise ValueError("File workflow config phải là dictionary.")
+                # Đảm bảo project_prefix tồn tại
+                config.setdefault('project_prefix', {})
                 return config
             logging.warning(f"File {self.workflow_config_file} không tồn tại, dùng config mặc định.")
             return default_config
@@ -122,6 +129,20 @@ class WorkflowManager:
                 shutil.copy2(src_path, dst_path)
                 logging.info(f"Đã sao lưu {src_path} vào {dst_path}")
 
+    def _copy_current_to_predecessor(self) -> None:
+        """Sao chép tất cả file từ current sang predecessor (ghi đè nếu tồn tại), xóa current và tạo lại."""
+        for file_name in os.listdir(self.current_dir):
+            src_path = os.path.join(self.current_dir, file_name)
+            if os.path.isfile(src_path):
+                dst_path = os.path.join(self.predecessor_dir, file_name)
+                shutil.copy2(src_path, dst_path)
+                logging.info(f"Đã sao chép {src_path} sang {dst_path} (ghi đè nếu tồn tại)")
+
+        # Xóa thư mục current và tạo lại
+        shutil.rmtree(self.current_dir)
+        os.makedirs(self.current_dir)
+        logging.info(f"Đã xóa và tạo lại thư mục {self.current_dir}")
+
     def _download_snapshot(self, agent_name: str, config: AgentConfig.Config, date: str) -> str:
         """Tải Google Sheet và lưu snapshot vào thư mục current."""
         file_name = self._get_file_name(agent_name, config, self.current_dir)
@@ -147,13 +168,13 @@ class WorkflowManager:
             logging.error(f"Lỗi khi tải snapshot {file_name} cho {agent_name}/{config.project_name}: {e}")
             return ''
 
-    def _compare_snapshots(self, agent_name: str, config: AgentConfig.Config, predecessor_file: str, current_file: str) -> None:
-        """So sánh hai snapshot."""
+    def _compare_snapshots(self, agent_name: str, config: AgentConfig.Config, predecessor_file: str, current_file: str) -> Dict[str, Any]:
+        """So sánh hai snapshot và trả về kết quả chi tiết."""
         agent_state = self.state.get(agent_name, {}).get(config.project_name, {})
         compare_key = f"compare_{os.path.basename(predecessor_file)}_{os.path.basename(current_file)}"
         if agent_state.get(compare_key) == 'completed':
             logging.info(f"Bỏ qua so sánh {predecessor_file} và {current_file} cho {agent_name}/{config.project_name}: đã hoàn thành.")
-            return
+            return {'added': [], 'removed': [], 'changed': []}
 
         try:
             if not os.path.exists(predecessor_file) or not os.path.exists(current_file):
@@ -166,28 +187,17 @@ class WorkflowManager:
                 check_cols=config.check_columns,
                 allowed_key_pattern=self.workflow_config.get('allowed_key_pattern')
             )
-            comparator.compare()
+            # Giả định compare() trả về dict với added, removed, changed
+            comparison_result = comparator.compare()
 
             agent_state[compare_key] = 'completed'
             self.state.setdefault(agent_name, {}).setdefault(config.project_name, {}).update(agent_state)
             self._save_state()
             logging.info(f"So sánh thành công {predecessor_file} và {current_file} cho {agent_name}/{config.project_name}.")
+            return comparison_result
         except Exception as e:
             logging.error(f"Lỗi khi so sánh {predecessor_file} và {current_file} cho {agent_name}/{config.project_name}: {e}")
-
-    def _copy_current_to_predecessor(self) -> None:
-        """Sao chép tất cả file từ current sang predecessor (ghi đè nếu tồn tại), xóa current và tạo lại."""
-        for file_name in os.listdir(self.current_dir):
-            src_path = os.path.join(self.current_dir, file_name)
-            if os.path.isfile(src_path):
-                dst_path = os.path.join(self.predecessor_dir, file_name)
-                shutil.copy2(src_path, dst_path)
-                logging.info(f"Đã sao chép {src_path} sang {dst_path} (ghi đè nếu tồn tại)")
-
-        # Xóa thư mục current và tạo lại
-        shutil.rmtree(self.current_dir)
-        os.makedirs(self.current_dir)
-        logging.info(f"Đã xóa và tạo lại thư mục {self.current_dir}")
+            raise
 
     def run(self, current_date: str = None, predecessor_date: str = None) -> None:
         """Chạy toàn bộ workflow.
@@ -206,32 +216,54 @@ class WorkflowManager:
         if current_date is None:
             current_date = datetime.now().strftime('%y%m%d')
 
+        # Lưu kết quả để tạo báo cáo
+        results = []
+
         for agent_config in self.configs:
             logging.info(f"Bắt đầu xử lý đại lý {agent_config.agent_name}...")
 
             for config in agent_config.configs:
+                result = {
+                    'agent_name': agent_config.agent_name,
+                    'project_name': config.project_name,
+                    'status': 'N/A',
+                    'comparison': {'added': [], 'removed': [], 'changed': []}
+                }
+
                 try:
                     # Tải snapshot hiện tại vào thư mục current
                     current_file = self._download_snapshot(agent_config.agent_name, config, current_date)
                     if not current_file:
+                        result['status'] = 'Failed'
                         logging.warning(f"Bỏ qua so sánh cho {agent_config.agent_name}/{config.project_name}: không có snapshot current.")
                         print("\n=======================")
+                        results.append(result)
                         continue
 
                     # Tìm file predecessor từ thư mục predecessor
                     predecessor_file = self._find_predecessor_file(agent_config.agent_name, config)
                     if not predecessor_file:
+                        result['status'] = 'Failed'
                         logging.warning(f"Bỏ qua so sánh cho {agent_config.agent_name}/{config.project_name}: không tìm thấy snapshot predecessor.")
                         print("\n=======================")
+                        results.append(result)
                         continue
 
-                    # So sánh snapshot
-                    self._compare_snapshots(agent_config.agent_name, config, predecessor_file, current_file)
+                    # So sánh snapshot và lưu kết quả chi tiết
+                    comparison_result = self._compare_snapshots(agent_config.agent_name, config, predecessor_file, current_file)
+                    result['status'] = 'Success'
+                    result['comparison'] = comparison_result
 
                 except Exception as e:
+                    result['status'] = 'Failed'
                     logging.error(f"Lỗi tổng quát khi xử lý {agent_config.agent_name}/{config.project_name}: {e}")
                     print("\n=======================")
-                    continue
+
+                results.append(result)
+
+        # Tạo báo cáo Excel
+        report_generator = ReportGenerator(workflow_config_file=self.workflow_config_file)
+        report_generator.generate_report(results)
 
     def reset_state(self) -> None:
         """Xóa toàn bộ trạng thái trong state.json."""
@@ -257,10 +289,10 @@ if __name__ == "__main__":
         manager = WorkflowManager(config_file='project_config.json', proxies=proxies)
         need_reset = get_user_input_with_timeout(
             prompt="Bạn có muốn reset trạng thái không? (y/n): ",
-            timeout=5,  # Timeout 5 giây
-            default="n"  # Mặc định là 'n'
+            timeout=30,  # Timeout 30 giây
+            default="y"  # Mặc định là 'y'
         )
-        if need_reset == 'y':
+        if need_reset != 'n':
             manager.reset_state()
         manager.run()
     except Exception as e:

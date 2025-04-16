@@ -1,4 +1,13 @@
 {
     "allowed_key_pattern": "^[A-Za-z0-9_.-]+$",
-    "snapshot_extension": ".csv"
+    "snapshot_extension": ".csv",
+    "project_prefix": {
+        "C4": "LSB",
+        "A2": "MGA",
+        "B2": "MGA",
+        "U38": "MLS",
+        "U38A": "MLS",
+        "Z34": "MLS",
+        "C3": "MTS"
+    }
 }

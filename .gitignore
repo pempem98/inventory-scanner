@@ -5,6 +5,8 @@ venv
 backup
 current
 predecessor
+extracted_data
+report
 *.pyc
 *.pyo
 *.pyd

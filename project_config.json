@@ -598,9 +598,9 @@
             "project_name": "MTS",
             "spreadsheet_id": "1_8KWuwV8M3gSKlRBHJfCoW2uXnz21R13eiC2Po73hho",
             "gid": "125900467",
-            "key_column": "C",
+            "key_column": "B",
             "check_columns": [
-                "F"
+                "H"
             ]
         }
     ],
@@ -707,7 +707,7 @@
             "project_name": "LSB_MLS",
             "spreadsheet_id": "1qhEMwwLrGfGaGP41qvGcYqGY5glx6_9R",
             "gid": "1621820955",
-            "key_column": "C",
+            "key_column": "B",
             "check_columns": [
                 "J"
             ]
