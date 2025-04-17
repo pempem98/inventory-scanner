@@ -170,6 +170,8 @@ class ReportGenerator:
                 'Loại bỏ': "\n".join(removed_lines),
                 'Thay đổi': "\n".join(changed_lines)
             }
+            if short_project_name == 'Unknown':
+                continue
             data.append(row)
 
         return pd.DataFrame(data, columns=columns)
@@ -264,7 +266,7 @@ class ReportGenerator:
             results = []
 
         # Tạo sheet tổng quan
-        df_summary = self._create_summary_sheet(results)
+        # df_summary = self._create_summary_sheet(results)
 
         # Tạo sheet chi tiết
         df_detail = self._create_detail_sheet(results)
@@ -272,7 +274,7 @@ class ReportGenerator:
         # Tạo file Excel
         with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
             # Ghi sheet tổng quan
-            df_summary.to_excel(writer, sheet_name='Tổng quan', index=False)
+            # df_summary.to_excel(writer, sheet_name='Tổng quan', index=False)
 
             # Ghi sheet chi tiết
             df_detail.to_excel(writer, sheet_name='Chi tiết', index=False)

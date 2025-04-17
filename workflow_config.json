@@ -1,5 +1,5 @@
 {
-    "allowed_key_pattern": "^[A-Za-z0-9_.-]+$",
+    "allowed_key_pattern": "^[A-Z0-9_.-]+$",
     "snapshot_extension": ".csv",
     "project_prefix": {
         "C4": "LSB",
