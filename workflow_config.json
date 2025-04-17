@@ -9,5 +9,9 @@
         "U38A": "MLS",
         "Z34": "MLS",
         "C3": "MTS"
+    },
+    "telegram": {
+        "bot_token": "8067863112:AAGgxTH48MEXmtK8IMvOIKWtiFa5yGcf4C0",
+        "chat_id": "-4255213166"
     }
 }
