@@ -91,7 +91,7 @@
             "gid": "1450826906",
             "key_column": "C",
             "check_columns": [
-                "I"
+                "K"
             ]
         }
     ],
@@ -415,7 +415,7 @@
             "gid": "88506699",
             "key_column": "C",
             "check_columns": [
-                "H"
+                "J"
             ]
         },
         {
@@ -533,7 +533,7 @@
             "gid": "1459929022",
             "key_column": "B",
             "check_columns": [
-                "G"
+                "I"
             ]
         },
         {
@@ -756,7 +756,7 @@
             "gid": "972079545",
             "key_column": "C",
             "check_columns": [
-                "I"
+                "J"
             ]
         }
     ]

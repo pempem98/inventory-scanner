@@ -7,7 +7,7 @@ import logging
 class ExcelSnapshotComparator:
     """Class để so sánh hai snapshot Excel, kiểm tra thay đổi dựa trên cột key."""
 
-    def __init__(self, file_predecessor: str, file_current: str, key_col: str, check_cols: List[str], allowed_key_pattern: str = r'^[A-Za-z0-9._-]+$'):
+    def __init__(self, file_predecessor: str, file_current: str, key_col: str, check_cols: List[str], allowed_key_pattern: str = r'^[A-Z0-9._-]+$'):
         """
         Khởi tạo với thông tin file và cột.
 
@@ -61,6 +61,8 @@ class ExcelSnapshotComparator:
                 df['key'].str.match(self.allowed_key_pattern) &
                 (df['key'] != '') &
                 (df['key'] != 'nan') &
+                (df['key'].str.len() >= 6) &
+                (df['key'].str.len() <= 15) &
                 df['key'].notna()
             )
 

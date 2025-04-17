@@ -74,6 +74,16 @@ class ExcelBackupExtractor:
             index = index * 26 + (ord(char) - ord('A') + 1)
         return index - 1
 
+    def index_to_excel_col(self, index: int) -> str:
+        """Chuyển chỉ số cột thành ký hiệu Excel."""
+        if index < 0:
+            raise ValueError("Chỉ số cột không hợp lệ.")
+        col = ''
+        while index >= 0:
+            col = chr(65 + (index % 26)) + col
+            index = index // 26 - 1
+        return col
+
     def read_file(self, file_path: str) -> pd.DataFrame:
         """Đọc file Excel hoặc CSV."""
         try:
@@ -119,14 +129,17 @@ class ExcelBackupExtractor:
                     'file': file_name,
                     'agent': agent_name,
                     'project': project_name,
-                    'key': row[key_col_idx]
                 }
+                key_column = self.index_to_excel_col(key_col_idx)
+                check_key = f'{agent_name}_{project_name}_{key_column}'
+                entry[check_key] = row[key_col_idx]
                 for col_idx, col_name in zip(check_cols_idx, check_cols):
+                    data_key = f'{agent_name}_{project_name}_{col_name}'
                     if col_idx < df.shape[1]:
                         value = row[col_idx]
-                        entry[col_name] = 'Unknown' if pd.isna(value) else value
+                        entry[data_key] = 'Unknown' if pd.isna(value) else value
                     else:
-                        entry[col_name] = 'N/A'
+                        entry[data_key] = 'N/A'
                 data.append(entry)
             return data
         except Exception as e:
@@ -135,16 +148,16 @@ class ExcelBackupExtractor:
 
     def process_backups(self, folder_path="predecessor"):
         """Trích xuất dữ liệu từ tất cả file backup trong project_config.json."""
+        backup_files = []
+        if os.path.exists(folder_path) and os.path.isdir(folder_path):
+            for root, _, files in os.walk(folder_path):
+                for file in files:
+                    backup_files.append(os.path.join(root, file))
         for agent_name, projects in self.project_config.items():
             for project in projects:
                 project_name = project.get('project_name', 'Unknown')
-                key_col = project.get('key_col', 'C')
-                check_cols = project.get('check_cols', ['I'])
-                backup_files = []
-                if os.path.exists(folder_path) and os.path.isdir(folder_path):
-                    for root, _, files in os.walk(folder_path):
-                        for file in files:
-                            backup_files.append(os.path.join(root, file))
+                key_col = project.get('key_column', 'C')
+                check_cols = project.get('check_columns', ['I'])
 
                 key_col_idx = self.excel_col_to_index(key_col)
                 check_cols_idx = [self.excel_col_to_index(col) for col in check_cols]
@@ -152,6 +165,8 @@ class ExcelBackupExtractor:
                 for file_path in backup_files:
                     if not os.path.exists(file_path):
                         logging.warning(f"File {file_path} không tồn tại.")
+                        continue
+                    if not f"{agent_name}_{project_name}" in file_path:
                         continue
 
                     logging.info(f"Đang xử lý file {file_path}")
@@ -182,13 +197,7 @@ class ExcelBackupExtractor:
         """In kết quả ra console."""
         print("\n=== Kết quả trích xuất ===")
         for entry in self.results:
-            print(f"File: {entry['file']}")
-            print(f"Agent: {entry['agent']}")
-            print(f"Project: {entry['project']}")
-            print(f"Key: {entry['key']}")
-            for col in entry:
-                if col not in ['file', 'agent', 'project', 'key']:
-                    print(f"{col}: {entry[col]}")
+            print(entry)
             print("-" * 30)
         print("=======================")
 
