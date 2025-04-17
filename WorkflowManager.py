@@ -9,6 +9,7 @@ from AgentConfig import AgentConfig
 from GoogleSheetDownloader import GoogleSheetDownloader
 from ExcelSnapshotComparator import ExcelSnapshotComparator
 from ReportGenerator import ReportGenerator
+from TelegramNotifier import TelegramNotifier
 
 # Thiết lập logging với encoding UTF-8
 logging.basicConfig(
@@ -84,7 +85,8 @@ class WorkflowManager:
         default_config = {
             'allowed_key_pattern': r'^[A-Za-z0-9_.-]+$',
             'snapshot_file_extension': '.csv',
-            'project_prefix': {}
+            'project_prefix': {},
+            'telegram': {}
         }
         try:
             if os.path.exists(self.workflow_config_file):
@@ -92,8 +94,8 @@ class WorkflowManager:
                     config = json.load(f)
                 if not isinstance(config, dict):
                     raise ValueError("File workflow config phải là dictionary.")
-                # Đảm bảo project_prefix tồn tại
                 config.setdefault('project_prefix', {})
+                config.setdefault('telegram', {})
                 return config
             logging.warning(f"File {self.workflow_config_file} không tồn tại, dùng config mặc định.")
             return default_config
@@ -147,7 +149,7 @@ class WorkflowManager:
         """Tải Google Sheet và lưu snapshot vào thư mục current."""
         file_name = self._get_file_name(agent_name, config, self.current_dir)
 
-        print(f"Đại lý {agent_name} - Dự án {config.project_name}")
+        print(f"Đại lý {agent_name} - Dự án {config.project_name}")
 
         # Tạo khóa trạng thái dựa trên agent_name và project_name
         agent_state = self.state.get(agent_name, {}).get(config.project_name, {})
@@ -189,6 +191,7 @@ class WorkflowManager:
             )
             # Giả định compare() trả về dict với added, removed, changed
             comparison_result = comparator.compare()
+            comparison_result['project_name'] = config.project_name
 
             agent_state[compare_key] = 'completed'
             self.state.setdefault(agent_name, {}).setdefault(config.project_name, {}).update(agent_state)
@@ -265,6 +268,10 @@ class WorkflowManager:
         report_generator = ReportGenerator(workflow_config_file=self.workflow_config_file)
         report_generator.generate_report(results)
 
+        # Gửi tin nhắn Telegram
+        telegram_notifier = TelegramNotifier(self.workflow_config, self.proxies)
+        telegram_notifier.send_message(results)
+
     def reset_state(self) -> None:
         """Xóa toàn bộ trạng thái trong state.json."""
         self.state = {}
@@ -286,7 +293,7 @@ if __name__ == "__main__":
             'http': 'http://rb-proxy-apac.bosch.com:8080',
             'https': 'http://rb-proxy-apac.bosch.com:8080'
         }
-        manager = WorkflowManager(config_file='project_config.json', proxies=proxies)
+        manager = WorkflowManager(config_file='project_config.json')
         need_reset = get_user_input_with_timeout(
             prompt="Bạn có muốn reset trạng thái không? (y/n): ",
             timeout=30,  # Timeout 30 giây
