@@ -93,7 +93,7 @@ if __name__ == "__main__":
         },
         "telegram": {
             "bot_token": "8067863112:AAGgxTH48MEXmtK8IMvOIKWtiFa5yGcf4C0",  # Thay bằng bot token thực
-            "chat_id": "-4255213166"       # Thay bằng chat ID thực
+            "chat_id": "--4646944138"       # Thay bằng chat ID thực
         }
     }
 
