@@ -11,7 +11,7 @@ logging.basicConfig(
 )
 
 class TelegramNotifier:
-    """Class để gửi tin nhắn Telegram về các căn thêm mới và đã bán."""
+    """Class để gửi tin nhắn Telegram về các căn thêm mới, đã bán và lỗi."""
 
     def __init__(self, workflow_config: Dict[str, Any], proxies: Dict[str, str] = None):
         """
@@ -28,7 +28,7 @@ class TelegramNotifier:
         self.chat_id = self.telegram_config.get('chat_id')
 
     def send_message(self, results: List[Dict[str, Any]]) -> None:
-        """Gửi tin nhắn Telegram với thông tin căn thêm mới và đã bán."""
+        """Gửi tin nhắn Telegram với thông tin căn thêm mới, đã bán và lỗi."""
         if not self.bot_token or not self.chat_id:
             logging.warning("Thiếu cấu hình Telegram (bot_token hoặc chat_id) trong workflow_config.json.")
             return
@@ -36,9 +36,6 @@ class TelegramNotifier:
         # Tạo nội dung tin nhắn
         messages = []
         for result in results:
-            if result['status'] != 'Success':
-                continue
-
             agent_name = result['agent_name']
             project_name = result['project_name']
             # Ánh xạ project_name thành tên dự án ngắn (như LSB)
@@ -48,6 +45,16 @@ class TelegramNotifier:
                 if project_name.startswith(prefix):
                     short_project_name = name
                     break
+
+            # Trường hợp lỗi (status = 'Failed')
+            if result['status'] == 'Failed':
+                message = f"[Lỗi] Đại lý {agent_name} - Dự án {short_project_name}"
+                messages.append(message)
+                continue
+
+            # Trường hợp thành công (status = 'Success')
+            if result['status'] != 'Success':
+                continue
 
             added = result['comparison'].get('added', [])
             removed = result['comparison'].get('removed', [])
@@ -93,7 +100,7 @@ if __name__ == "__main__":
         },
         "telegram": {
             "bot_token": "8067863112:AAGgxTH48MEXmtK8IMvOIKWtiFa5yGcf4C0",  # Thay bằng bot token thực
-            "chat_id": "--4646944138"       # Thay bằng chat ID thực
+            "chat_id": "-4646944138"       # Thay bằng chat ID thực
         }
     }
 
@@ -111,14 +118,29 @@ if __name__ == "__main__":
         {
             "agent_name": "XYZ",
             "project_name": "C4_MGA",
-            "status": "Success",
+            "status": "Failed",
             "comparison": {
                 "added": [],
-                "removed": ["C4_Product_004"],
+                "removed": [],
+                "changed": []
+            }
+        },
+        {
+            "agent_name": "HOMEPLUS",
+            "project_name": "C5_MLS",
+            "status": "Failed",
+            "comparison": {
+                "added": [],
+                "removed": [],
                 "changed": []
             }
         }
     ]
+
+    sample_proxies = {
+        'http': 'http://rb-proxy-apac.bosch.com:8080',
+        'https': 'http://rb-proxy-apac.bosch.com:8080'
+    }
 
     # Khởi tạo và gửi tin nhắn thử
     notifier = TelegramNotifier(sample_workflow_config)
