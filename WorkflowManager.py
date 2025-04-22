@@ -158,7 +158,7 @@ class WorkflowManager:
             return file_name
 
         try:
-            downloader = GoogleSheetDownloader(config.spreadsheet_id, config.gid, proxies=self.proxies)
+            downloader = GoogleSheetDownloader(config.spreadsheet_id, config.html_url, config.gid, proxies=self.proxies)
             downloader.download(output_file=file_name)
 
             agent_state[f'download_{date}'] = 'completed'

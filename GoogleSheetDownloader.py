@@ -20,7 +20,7 @@ class HTTPAdapterWithProxyKerberosAuth(requests.adapters.HTTPAdapter):
 class GoogleSheetDownloader:
     """Class để tải và xử lý Google Sheet từ URL công khai."""
 
-    def __init__(self, spreadsheet_id: str, gid: str, proxies=None):
+    def __init__(self, spreadsheet_id: str, html_url: str, gid: str, proxies=None):
         """
         Khởi tạo với ID của Google Sheet và worksheet.
 
@@ -31,6 +31,7 @@ class GoogleSheetDownloader:
         """
         self.spreadsheet_id = spreadsheet_id
         self.gid = gid
+        self.html_url = html_url
         session = requests.Session()
         if proxies is not None:
             session.proxies = proxies
@@ -40,7 +41,9 @@ class GoogleSheetDownloader:
 
     def fetch_html(self) -> str:
         """Tải nội dung HTML từ Google Sheet qua /htmlview."""
-        html_url = f'https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/htmlview?gid={self.gid}'
+        html_url = self.html_url
+        if html_url is None:
+            html_url = f'https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/htmlview?gid={self.gid}'
         print(f"Goto: {html_url}")
         try:
             response = self.session.get(html_url, verify=False)
