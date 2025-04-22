@@ -222,6 +222,10 @@ class WorkflowManager:
         # Lưu kết quả để tạo báo cáo
         results = []
 
+        # Khởi tạo TelegramNotifier
+        telegram_notifier = TelegramNotifier(self.workflow_config, self.proxies)
+        telegram_notifier.send_message(messages=["Bắt đầu chạy hệ thống kiểm tra dữ liệu..."])
+
         for agent_config in self.configs:
             logging.info(f"Bắt đầu xử lý đại lý {agent_config.agent_name}...")
 
@@ -256,6 +260,10 @@ class WorkflowManager:
                     comparison_result = self._compare_snapshots(agent_config.agent_name, config, predecessor_file, current_file)
                     result['status'] = 'Success'
                     result['comparison'] = comparison_result
+                    if comparison_result['removed']:
+                        msg = f"Đại lý {agent_config.agent_name} - Dự án {config.project_name} tất cả mã căn hộ hiện tại: \n{comparison_result['checking']}"
+                        logging.info(msg)
+                        telegram_notifier.send_message(messages=[msg])
 
                 except Exception as e:
                     result['status'] = 'Failed'
@@ -269,7 +277,7 @@ class WorkflowManager:
         report_generator.generate_report(results)
 
         # Gửi tin nhắn Telegram
-        telegram_notifier = TelegramNotifier(self.workflow_config, self.proxies)
+        telegram_notifier.send_message(messages=["Báo cáo đã được tạo thành công."])
         telegram_notifier.send_message(results)
 
     def reset_state(self) -> None:
