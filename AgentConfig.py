@@ -12,12 +12,14 @@ class AgentConfig:
             project_name: str,
             spreadsheet_id: str,
             gid: str,
+            html_url: str,
             key_column: str,
             check_columns: List[str]
         ):
             self.project_name = project_name
             self.spreadsheet_id = spreadsheet_id
             self.gid = gid
+            self.html_url = html_url
             self.key_column = key_column
             self.check_columns = check_columns
 
@@ -26,10 +28,11 @@ class AgentConfig:
 
         def _validate(self) -> None:
             """Kiểm tra dữ liệu hợp lệ."""
-            if not self.project_name or not isinstance(self.project_name, str):
+            if (not self.project_name or not isinstance(self.project_name, str)):
                 raise ValueError("Tên dự án phải là chuỗi không rỗng.")
-            if not self.spreadsheet_id or not isinstance(self.spreadsheet_id, str):
-                raise ValueError("Spreadsheet ID phải là chuỗi không rỗng.")
+            if (not self.spreadsheet_id or not isinstance(self.spreadsheet_id, str)) \
+            and (not self.html_url or not isinstance(self.html_url, str)):
+                raise ValueError("Spreadsheet ID hoặc HTML URL phải là chuỗi không rỗng.")
             if not self.gid or not isinstance(self.gid, str):
                 raise ValueError("GID phải là chuỗi không rỗng.")
             if not self._is_valid_excel_col(self.key_column):
@@ -45,7 +48,7 @@ class AgentConfig:
         def __repr__(self) -> str:
             """Biểu diễn chuỗi của cấu hình."""
             return (f"Config(project_name='{self.project_name}', "
-                    f"spreadsheet_id='{self.spreadsheet_id}', gid='{self.gid}', "
+                    f"spreadsheet_id='{self.spreadsheet_id}', gid='{self.gid}', html_url='{self.html_url}', "
                     f"key_column='{self.key_column}', check_columns={self.check_columns})")
 
     def __init__(self, agent_name: str, configs: List['AgentConfig.Config']):
@@ -85,8 +88,9 @@ class AgentConfig:
         if isinstance(data, dict):
             configs.append(cls.Config(
                 project_name=data['project_name'],
-                spreadsheet_id=data['spreadsheet_id'],
+                spreadsheet_id=data.get('spreadsheet_id'),
                 gid=data['gid'],
+                html_url=data.get('html_url'),
                 key_column=data['key_column'],
                 check_columns=data['check_columns']
             ))
@@ -95,8 +99,9 @@ class AgentConfig:
             for item in data:
                 configs.append(cls.Config(
                     project_name=item['project_name'],
-                    spreadsheet_id=item['spreadsheet_id'],
+                    spreadsheet_id=item.get('spreadsheet_id'),
                     gid=item['gid'],
+                    html_url=item.get('html_url'),
                     key_column=item['key_column'],
                     check_columns=item['check_columns']
                 ))

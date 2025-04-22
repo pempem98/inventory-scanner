@@ -185,27 +185,27 @@
     "Future Homes": [
         {
             "project_name": "LSB",
-            "spreadsheet_id": "123",
+            "html_url": "https://partner.futurehomes.vn/",
             "gid": "SpringBay",
-            "key_column": "C",
+            "key_column": "A",
             "check_columns": [
                 "I"
             ]
         },
         {
             "project_name": "MLS",
-            "spreadsheet_id": "123",
+            "html_url": "https://partner.futurehomes.vn/",
             "gid": "LakeSide",
-            "key_column": "C",
+            "key_column": "A",
             "check_columns": [
                 "I"
             ]
         },
         {
             "project_name": "MTS",
-            "spreadsheet_id": "123",
+            "html_url": "https://partner.futurehomes.vn/",
             "gid": "TrinitySquare",
-            "key_column": "C",
+            "key_column": "A",
             "check_columns": [
                 "I"
             ]
