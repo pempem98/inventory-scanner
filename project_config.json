@@ -118,18 +118,18 @@
             "project_name": "MLS",
             "spreadsheet_id": "1fRvSwYoapZBElV6zz-MYgjyYoM7DTtXg",
             "gid": "1459929022",
-            "key_column": "B",
+            "key_column": "C",
             "check_columns": [
-                "H"
+                "I"
             ]
         },
         {
             "project_name": "MTS",
             "spreadsheet_id": "1V5M7BhtKE4fXkxFxjUxG9zuCHDdLqMV6",
             "gid": "1459929022",
-            "key_column": "B",
+            "key_column": "C",
             "check_columns": [
-                "H"
+                "I"
             ]
         }
     ],
@@ -772,7 +772,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1xjEGeigFqcRy0idaODox7jUAuElNNO51",
             "gid": "972079545",
-            "key_column": "C",
+            "key_column": "F",
             "check_columns": [
                 "J"
             ]

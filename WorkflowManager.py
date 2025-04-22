@@ -296,7 +296,7 @@ if __name__ == "__main__":
         manager = WorkflowManager(config_file='project_config.json')
         need_reset = get_user_input_with_timeout(
             prompt="Bạn có muốn reset trạng thái không? (y/n): ",
-            timeout=30,  # Timeout 30 giây
+            timeout=10,  # Timeout 10 giây
             default="y"  # Mặc định là 'y'
         )
         if need_reset != 'n':
