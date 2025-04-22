@@ -208,7 +208,7 @@ def main():
         workflow_config_file='workflow_config.json'
     )
 
-    extractor.process_backups()
+    extractor.process_backups(folder_path="current")
     extractor.print_results()
     extractor.save_results()
 
