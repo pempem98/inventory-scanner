@@ -68,7 +68,7 @@ class TelegramNotifier:
                 else:
                     message += "Nhập thêm: Không có\n\n"
                 if removed:
-                    message += "Đã bán:\n" + "\nĐã bán ".join([f"<b>{key}</b>" for key in removed])
+                    message += "Đã bán:\nĐã bán " + "\nĐã bán ".join([f"<b>{key}</b>" for key in removed])
                 else:
                     message += "Đã bán: Không có"
 
