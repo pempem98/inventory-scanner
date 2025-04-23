@@ -261,7 +261,7 @@ class WorkflowManager:
                     result['status'] = 'Success'
                     result['comparison'] = comparison_result
                     if comparison_result['removed']:
-                        msg = f"Đại lý {agent_config.agent_name} - Dự án {config.project_name} tất cả mã căn hộ hiện tại: \n{comparison_result['checking']}"
+                        msg = f"Đại lý {agent_config.agent_name} - Dự án {config.project_name} tất cả mã căn hộ hiện tại: \n<blockquote expandable>{comparison_result['checking']}</blockquote>"
                         logging.info(msg)
                         telegram_notifier.send_message(messages=[msg])
 
