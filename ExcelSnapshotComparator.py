@@ -125,7 +125,7 @@ class ExcelSnapshotComparator:
                 'added': new_keys,
                 'removed': missing_keys,
                 'changed': changes,
-                'checking': keys_current
+                'remaining': keys_current
             }
         except Exception as e:
             logging.error(f"Lỗi khi so sánh snapshot: {e}")

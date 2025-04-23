@@ -260,10 +260,6 @@ class WorkflowManager:
                     comparison_result = self._compare_snapshots(agent_config.agent_name, config, predecessor_file, current_file)
                     result['status'] = 'Success'
                     result['comparison'] = comparison_result
-                    if comparison_result['removed']:
-                        msg = f"Đại lý {agent_config.agent_name} - Dự án {config.project_name} tất cả mã căn hộ hiện tại: \n<blockquote expandable>{comparison_result['checking']}</blockquote>"
-                        logging.info(msg)
-                        telegram_notifier.send_message(messages=[msg])
 
                 except Exception as e:
                     result['status'] = 'Failed'
@@ -277,7 +273,6 @@ class WorkflowManager:
         report_generator.generate_report(results)
 
         # Gửi tin nhắn Telegram
-        telegram_notifier.send_message(messages=["Báo cáo đã được tạo thành công."])
         telegram_notifier.send_message(results)
 
     def reset_state(self) -> None:
