@@ -6,6 +6,7 @@ backup
 current
 predecessor
 extracted_data
+extracted_removed
 report
 build
 dist
