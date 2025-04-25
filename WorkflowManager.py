@@ -158,7 +158,7 @@ class WorkflowManager:
             return file_name
 
         try:
-            downloader = GoogleSheetDownloader(config.spreadsheet_id, config.gid, proxies=self.proxies)
+            downloader = GoogleSheetDownloader(config.spreadsheet_id, config.html_url, config.gid, proxies=self.proxies)
             downloader.download(output_file=file_name)
 
             agent_state[f'download_{date}'] = 'completed'
@@ -222,6 +222,10 @@ class WorkflowManager:
         # Lưu kết quả để tạo báo cáo
         results = []
 
+        # Khởi tạo TelegramNotifier
+        telegram_notifier = TelegramNotifier(self.workflow_config, self.proxies)
+        telegram_notifier.send_message(messages=["Bắt đầu chạy hệ thống kiểm tra dữ liệu..."])
+
         for agent_config in self.configs:
             logging.info(f"Bắt đầu xử lý đại lý {agent_config.agent_name}...")
 
@@ -269,7 +273,10 @@ class WorkflowManager:
         report_generator.generate_report(results)
 
         # Gửi tin nhắn Telegram
+<<<<<<< HEAD
         telegram_notifier = TelegramNotifier(self.workflow_config, self.proxies)
+=======
+>>>>>>> 5f86509d3d50c4a223c109e96fd2f4f448885e98
         telegram_notifier.send_message(results)
 
     def reset_state(self) -> None:
@@ -296,7 +303,7 @@ if __name__ == "__main__":
         manager = WorkflowManager(config_file='project_config.json')
         need_reset = get_user_input_with_timeout(
             prompt="Bạn có muốn reset trạng thái không? (y/n): ",
-            timeout=30,  # Timeout 30 giây
+            timeout=10,  # Timeout 10 giây
             default="y"  # Mặc định là 'y'
         )
         if need_reset != 'n':

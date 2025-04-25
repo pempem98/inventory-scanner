@@ -11,7 +11,11 @@ logging.basicConfig(
 )
 
 class TelegramNotifier:
+<<<<<<< HEAD
     """Class để gửi tin nhắn Telegram về các căn thêm mới và đã bán."""
+=======
+    """Class để gửi tin nhắn Telegram về các căn thêm mới, đã bán và lỗi."""
+>>>>>>> 5f86509d3d50c4a223c109e96fd2f4f448885e98
 
     def __init__(self, workflow_config: Dict[str, Any], proxies: Dict[str, str] = None):
         """
@@ -27,45 +31,54 @@ class TelegramNotifier:
         self.bot_token = self.telegram_config.get('bot_token')
         self.chat_id = self.telegram_config.get('chat_id')
 
-    def send_message(self, results: List[Dict[str, Any]]) -> None:
-        """Gửi tin nhắn Telegram với thông tin căn thêm mới và đã bán."""
+    def send_message(self, results: List[Dict[str, Any]]=[], messages: List[str]=[]) -> None:
+        """Gửi tin nhắn Telegram với thông tin căn thêm mới, đã bán và lỗi."""
         if not self.bot_token or not self.chat_id:
             logging.warning("Thiếu cấu hình Telegram (bot_token hoặc chat_id) trong workflow_config.json.")
             return
 
         # Tạo nội dung tin nhắn
-        messages = []
-        for result in results:
-            if result['status'] != 'Success':
-                continue
+        if not messages:
+            for result in results:
+                agent_name = result['agent_name']
+                project_name = result['project_name']
+                # Ánh xạ project_name thành tên dự án ngắn (như LSB)
+                project_prefix = self.workflow_config.get('project_prefix', {})
+                short_project_name = project_name
+                for prefix, name in project_prefix.items():
+                    if project_name.startswith(prefix):
+                        short_project_name = name
+                        break
 
-            agent_name = result['agent_name']
-            project_name = result['project_name']
-            # Ánh xạ project_name thành tên dự án ngắn (như LSB)
-            project_prefix = self.workflow_config.get('project_prefix', {})
-            short_project_name = project_name
-            for prefix, name in project_prefix.items():
-                if project_name.startswith(prefix):
-                    short_project_name = name
-                    break
+                # Trường hợp lỗi (status = 'Failed')
+                if result['status'] == 'Failed':
+                    message = f"[Lỗi] Đại lý {agent_name} - Dự án {short_project_name}"
+                    messages.append(message)
+                    continue
 
-            added = result['comparison'].get('added', [])
-            removed = result['comparison'].get('removed', [])
+                # Trường hợp thành công (status = 'Success')
+                if result['status'] != 'Success':
+                    continue
 
-            if not added and not removed:
-                continue
+                added = result['comparison'].get('added', [])
+                removed = result['comparison'].get('removed', [])
+                remaining = result['comparison'].get('remaining', [])
 
-            message = f"Đại lý {agent_name}\nDự án {short_project_name}\n\n"
-            if added:
-                message += "Nhập thêm:\n" + "\n".join([f"<b>{key}</b>" for key in added]) + "\n\n"
-            else:
-                message += "Nhập thêm: Không có\n\n"
-            if removed:
-                message += "Đã bán:\n" + "\n".join([f"<b>{key}</b>" for key in removed])
-            else:
-                message += "Đã bán: Không có"
+                if not added and not removed:
+                    continue
 
-            messages.append(message)
+                message = f"Đại lý {agent_name}\nDự án {short_project_name}\n\n"
+                if added:
+                    message += "Nhập thêm:\n" + "\n".join([f"<b>{key}</b>" for key in added]) + "\n\n"
+                else:
+                    message += "Nhập thêm: Không có\n\n"
+                if removed:
+                    message += "Đã bán:\nĐã bán " + "\nĐã bán ".join([f"<b>{key}</b>" for key in removed])
+                    message += "\n\nQuỹ căn hiện tại:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in remaining]) + "</blockquote>"
+                else:
+                    message += "Đã bán: Không có"
+
+                messages.append(message)
 
         # Gửi từng tin nhắn
         for message in messages:
@@ -93,7 +106,7 @@ if __name__ == "__main__":
         },
         "telegram": {
             "bot_token": "8067863112:AAGgxTH48MEXmtK8IMvOIKWtiFa5yGcf4C0",  # Thay bằng bot token thực
-            "chat_id": "-4255213166"       # Thay bằng chat ID thực
+            "chat_id": "-4646944138"       # Thay bằng chat ID thực
         }
     }
 
@@ -111,14 +124,29 @@ if __name__ == "__main__":
         {
             "agent_name": "XYZ",
             "project_name": "C4_MGA",
-            "status": "Success",
+            "status": "Failed",
             "comparison": {
                 "added": [],
-                "removed": ["C4_Product_004"],
+                "removed": [],
+                "changed": []
+            }
+        },
+        {
+            "agent_name": "HOMEPLUS",
+            "project_name": "C5_MLS",
+            "status": "Failed",
+            "comparison": {
+                "added": [],
+                "removed": [],
                 "changed": []
             }
         }
     ]
+
+    sample_proxies = {
+        'http': 'http://rb-proxy-apac.bosch.com:8080',
+        'https': 'http://rb-proxy-apac.bosch.com:8080'
+    }
 
     # Khởi tạo và gửi tin nhắn thử
     notifier = TelegramNotifier(sample_workflow_config)

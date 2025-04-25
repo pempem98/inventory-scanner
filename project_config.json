@@ -118,18 +118,18 @@
             "project_name": "MLS",
             "spreadsheet_id": "1fRvSwYoapZBElV6zz-MYgjyYoM7DTtXg",
             "gid": "1459929022",
-            "key_column": "B",
+            "key_column": "C",
             "check_columns": [
-                "H"
+                "I"
             ]
         },
         {
             "project_name": "MTS",
             "spreadsheet_id": "1V5M7BhtKE4fXkxFxjUxG9zuCHDdLqMV6",
             "gid": "1459929022",
-            "key_column": "B",
+            "key_column": "C",
             "check_columns": [
-                "H"
+                "I"
             ]
         }
     ],
@@ -185,27 +185,27 @@
     "Future Homes": [
         {
             "project_name": "LSB",
-            "spreadsheet_id": "123",
+            "html_url": "https://partner.futurehomes.vn/",
             "gid": "SpringBay",
-            "key_column": "C",
+            "key_column": "A",
             "check_columns": [
                 "I"
             ]
         },
         {
             "project_name": "MLS",
-            "spreadsheet_id": "123",
+            "html_url": "https://partner.futurehomes.vn/",
             "gid": "LakeSide",
-            "key_column": "C",
+            "key_column": "A",
             "check_columns": [
                 "I"
             ]
         },
         {
             "project_name": "MTS",
-            "spreadsheet_id": "123",
+            "html_url": "https://partner.futurehomes.vn/",
             "gid": "TrinitySquare",
-            "key_column": "C",
+            "key_column": "A",
             "check_columns": [
                 "I"
             ]
@@ -456,6 +456,24 @@
             "key_column": "F",
             "check_columns": [
                 "K"
+            ]
+        },
+        {
+            "project_name": "MLS",
+            "spreadsheet_id": "1aczbRRE5DMN4wy_U-t0BsjS_GD1TQ8wY",
+            "gid": "1312180377",
+            "key_column": "E",
+            "check_columns": [
+                "J"
+            ]
+        },
+        {
+            "project_name": "MTS",
+            "spreadsheet_id": "1uMgjRqeK4xzNV_sY2SVF0ntdR83Rgxsy",
+            "gid": "1312180377",
+            "key_column": "E",
+            "check_columns": [
+                "J"
             ]
         }
     ],
@@ -754,7 +772,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1xjEGeigFqcRy0idaODox7jUAuElNNO51",
             "gid": "972079545",
-            "key_column": "C",
+            "key_column": "F",
             "check_columns": [
                 "J"
             ]
