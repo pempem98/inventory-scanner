@@ -11,11 +11,7 @@ logging.basicConfig(
 )
 
 class TelegramNotifier:
-<<<<<<< HEAD
-    """Class để gửi tin nhắn Telegram về các căn thêm mới và đã bán."""
-=======
     """Class để gửi tin nhắn Telegram về các căn thêm mới, đã bán và lỗi."""
->>>>>>> 5f86509d3d50c4a223c109e96fd2f4f448885e98
 
     def __init__(self, workflow_config: Dict[str, Any], proxies: Dict[str, str] = None):
         """
@@ -52,7 +48,10 @@ class TelegramNotifier:
 
                 # Trường hợp lỗi (status = 'Failed')
                 if result['status'] == 'Failed':
-                    message = f"[Lỗi] Đại lý {agent_name} - Dự án {short_project_name}"
+                    if result['message']:
+                        message = result['message']
+                    else:
+                        message = f"[Error] Đại lý {agent_name} - Dự án {short_project_name}"
                     messages.append(message)
                     continue
 
@@ -69,11 +68,11 @@ class TelegramNotifier:
 
                 message = f"Đại lý {agent_name}\nDự án {short_project_name}\n\n"
                 if added:
-                    message += "Nhập thêm:\n" + "\n".join([f"<b>{key}</b>" for key in added]) + "\n\n"
+                    message += "Nhập thêm:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in added]) + "</blockquote>\n\n"
                 else:
                     message += "Nhập thêm: Không có\n\n"
                 if removed:
-                    message += "Đã bán:\nĐã bán " + "\nĐã bán ".join([f"<b>{key}</b>" for key in removed])
+                    message += "Đã bán:\n<blockquote expandable>Đã bán " + "\nĐã bán ".join([f"<b>{key}</b>" for key in removed])  + "</blockquote>"
                     message += "\n\nQuỹ căn hiện tại:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in remaining]) + "</blockquote>"
                 else:
                     message += "Đã bán: Không có"

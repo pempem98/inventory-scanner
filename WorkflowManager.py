@@ -234,26 +234,30 @@ class WorkflowManager:
                     'agent_name': agent_config.agent_name,
                     'project_name': config.project_name,
                     'status': 'N/A',
+                    'message': '',
                     'comparison': {'added': [], 'removed': [], 'changed': []}
                 }
+                message = ''
 
                 try:
                     # Tải snapshot hiện tại vào thư mục current
                     current_file = self._download_snapshot(agent_config.agent_name, config, current_date)
                     if not current_file:
                         result['status'] = 'Failed'
-                        logging.warning(f"Bỏ qua so sánh cho {agent_config.agent_name}/{config.project_name}: không có snapshot current.")
-                        print("\n=======================")
+                        message = f"[Warning] Tải bản ghi hiện tại thất bại cho Đại lý {agent_config.agent_name} - Dự án {config.project_name}."
+                        logging.warning(message)
                         results.append(result)
+                        print("\n=======================")
                         continue
 
                     # Tìm file predecessor từ thư mục predecessor
                     predecessor_file = self._find_predecessor_file(agent_config.agent_name, config)
                     if not predecessor_file:
                         result['status'] = 'Failed'
-                        logging.warning(f"Bỏ qua so sánh cho {agent_config.agent_name}/{config.project_name}: không tìm thấy snapshot predecessor.")
-                        print("\n=======================")
+                        message = f"[Warning] Bỏ qua vì không tìm thấy bản ghi cũ cho Đại lý {agent_config.agent_name} - Dự án {config.project_name}."
+                        logging.warning(message)
                         results.append(result)
+                        print("\n=======================")
                         continue
 
                     # So sánh snapshot và lưu kết quả chi tiết
@@ -263,9 +267,11 @@ class WorkflowManager:
 
                 except Exception as e:
                     result['status'] = 'Failed'
-                    logging.error(f"Lỗi tổng quát khi xử lý {agent_config.agent_name}/{config.project_name}: {e}")
+                    message = f"Lỗi khi xử lý {agent_config.agent_name}/{config.project_name}: {e}"
+                    logging.error(message)
                     print("\n=======================")
 
+                result['message'] = message
                 results.append(result)
 
         # Tạo báo cáo Excel
@@ -273,10 +279,6 @@ class WorkflowManager:
         report_generator.generate_report(results)
 
         # Gửi tin nhắn Telegram
-<<<<<<< HEAD
-        telegram_notifier = TelegramNotifier(self.workflow_config, self.proxies)
-=======
->>>>>>> 5f86509d3d50c4a223c109e96fd2f4f448885e98
         telegram_notifier.send_message(results)
 
     def reset_state(self) -> None:

@@ -13,10 +13,6 @@
     },
     "telegram": {
         "bot_token": "8067863112:AAGgxTH48MEXmtK8IMvOIKWtiFa5yGcf4C0",
-<<<<<<< HEAD
-        "chat_id": "-4255213166"
-=======
         "chat_id": "-4646944138"
->>>>>>> 5f86509d3d50c4a223c109e96fd2f4f448885e98
     }
 }
