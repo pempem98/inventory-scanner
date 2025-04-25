@@ -43,7 +43,7 @@ class GoogleSheetDownloader:
         """Tải nội dung HTML từ Google Sheet qua /htmlview."""
         html_url = self.html_url
         if html_url is None:
-            html_url = f'https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/htmlview?gid={self.gid}'
+            html_url = f'https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/htmlview'
         print(f"Goto: {html_url}")
         try:
             response = self.session.get(html_url, verify=False)

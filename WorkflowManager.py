@@ -246,6 +246,7 @@ class WorkflowManager:
                         result['status'] = 'Failed'
                         message = f"[Warning] Tải bản ghi hiện tại thất bại cho Đại lý {agent_config.agent_name} - Dự án {config.project_name}."
                         logging.warning(message)
+                        result['message'] = message
                         results.append(result)
                         print("\n=======================")
                         continue
@@ -256,6 +257,7 @@ class WorkflowManager:
                         result['status'] = 'Failed'
                         message = f"[Warning] Bỏ qua vì không tìm thấy bản ghi cũ cho Đại lý {agent_config.agent_name} - Dự án {config.project_name}."
                         logging.warning(message)
+                        result['message'] = message
                         results.append(result)
                         print("\n=======================")
                         continue
@@ -267,11 +269,11 @@ class WorkflowManager:
 
                 except Exception as e:
                     result['status'] = 'Failed'
+                    result['message'] = message
                     message = f"Lỗi khi xử lý {agent_config.agent_name}/{config.project_name}: {e}"
                     logging.error(message)
                     print("\n=======================")
 
-                result['message'] = message
                 results.append(result)
 
         # Tạo báo cáo Excel
