@@ -2,9 +2,23 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from requests_kerberos import HTTPKerberosAuth
 from urllib3.util import parse_url
+import re
+import os
+import logging
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill
+from openpyxl.utils import get_column_letter
+
+# Thiết lập logging
+logging.basicConfig(
+    filename='runtime.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    encoding='utf-8'
+)
 
 pd.set_option('future.no_silent_downcasting', True)
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
@@ -18,14 +32,15 @@ class HTTPAdapterWithProxyKerberosAuth(requests.adapters.HTTPAdapter):
         return headers
 
 class GoogleSheetDownloader:
-    """Class để tải và xử lý Google Sheet từ URL công khai."""
+    """Class để tải và xử lý Google Sheet từ URL công khai, lưu dữ liệu và màu nền vào file Excel."""
 
-    def __init__(self, spreadsheet_id: str, html_url: str, gid: str, proxies=None):
+    def __init__(self, spreadsheet_id: str, html_url: str, gid: str, proxies: Optional[dict] = None):
         """
         Khởi tạo với ID của Google Sheet và worksheet.
 
         Args:
             spreadsheet_id: ID của Google Sheet.
+            html_url: URL HTML công khai của sheet (nếu có).
             gid: ID của worksheet.
             proxies: Dictionary chứa cấu hình proxy (nếu có).
         """
@@ -39,153 +54,266 @@ class GoogleSheetDownloader:
             session.mount('https://', HTTPAdapterWithProxyKerberosAuth())
         self.session = session
 
-    def fetch_html(self) -> str:
-        """Tải nội dung HTML từ Google Sheet qua /htmlview."""
-        html_url = self.html_url
-        if html_url is None:
-            html_url = f'https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/htmlview?gid={self.gid}'
-        print(f"Goto: {html_url}")
+    def fetch_html(self) -> Tuple[str, str]:
+        """Tải nội dung HTML từ Google Sheet qua /htmlview.
+
+        Returns:
+            Nội dung HTML của sheet.
+
+        Raises:
+            Exception: Nếu không thể truy cập sheet hoặc lỗi mạng.
+        """
+        html_url = self.html_url or f'https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/htmlview'
+        logging.info(f"Tải HTML từ: {html_url}")
         try:
             response = self.session.get(html_url, verify=False)
-            if response.status_code == 200:
-                return response.text
-            raise Exception(f"Không thể truy cập sheet. Mã lỗi: {response.status_code}")
+            response.raise_for_status()
+            return html_url, response.text
         except Exception as e:
+            logging.error(f"Lỗi khi tải HTML: {e}")
             raise Exception(f"Lỗi khi tải HTML: {e}")
 
-    def parse_html_to_data(self, html_content: str) -> List[List[str]]:
-        """Parse HTML để lấy dữ liệu bảng từ div có id khớp với gid, xử lý colspan và rowspan."""
+    def extract_css_colors(self, soup: BeautifulSoup) -> dict:
+        """Trích xuất màu nền từ CSS classes trong thẻ <style>.
+
+        Args:
+            soup: Đối tượng BeautifulSoup chứa HTML.
+
+        Returns:
+            Dictionary ánh xạ CSS class sang mã màu hex.
+        """
+        css_colors = {}
+        style_tag = soup.find('style')
+        if not style_tag:
+            logging.warning("Không tìm thấy thẻ <style> trong HTML.")
+            return css_colors
+
+        css_content = style_tag.get_text()
+        pattern = r'\.ritz\s*\.waffle\s*\.s(\d+)\s*\{[^}]*background-color:\s*([^;]+);'
+        matches = re.findall(pattern, css_content)
+
+        for class_id, color in matches:
+            color = color.strip()
+            if color.startswith('rgb'):
+                rgb = [int(x) for x in re.findall(r'\d+', color)]
+                color = f"{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+            css_colors[f's{class_id}'] = color
+
+        logging.info(f"Đã trích xuất {len(css_colors)} màu nền từ CSS")
+        return css_colors
+
+    def parse_html_to_data(self, html_content: str) -> Tuple[List[List[str]], List[List[str]]]:
+        """Parse HTML để lấy dữ liệu bảng và màu nền từ div có id khớp với gid.
+
+        Args:
+            html_content: Nội dung HTML của sheet.
+
+        Returns:
+            Tuple chứa danh sách dữ liệu và danh sách màu nền.
+
+        Raises:
+            Exception: Nếu không tìm thấy div, bảng hoặc dữ liệu.
+        """
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
-            # Tìm div có id khớp với gid
+            css_colors = self.extract_css_colors(soup)
+
             div = soup.find('div', id=self.gid)
             if not div:
                 raise Exception(f"Không tìm thấy div với id={self.gid} trong HTML.")
 
-            # Tìm bảng bên trong div
             table = div.find('table')
             if not table:
                 raise Exception(f"Không tìm thấy bảng dữ liệu trong div với id={self.gid}.")
 
-            # Lấy tất cả các hàng
             rows = table.find_all('tr')
             if not rows:
                 raise Exception("Không có hàng nào trong bảng.")
 
-            # Xác định số cột tối đa
-            max_cols = 0
-            for row in rows:
-                col_count = sum(
-                    int(cell.get('colspan', 1))
-                    for cell in row.find_all(['td', 'th'])
-                )
-                max_cols = max(max_cols, col_count)
+            max_cols = max(
+                sum(int(cell.get('colspan', 1)) for cell in row.find_all(['td', 'th']))
+                for row in rows
+            )
 
-            # Khởi tạo lưới dữ liệu
-            grid = []
+            data_grid = []
+            color_grid = []
+            merged_count = 0
             row_idx = 0
 
             for row in rows:
-                # Thêm hàng mới vào grid nếu cần
-                while len(grid) <= row_idx:
-                    grid.append([None] * max_cols)
+                while len(data_grid) <= row_idx:
+                    data_grid.append([None] * max_cols)
+                    color_grid.append([None] * max_cols)
 
                 col_idx = 0
                 cells = row.find_all(['td', 'th'])
 
                 for cell in cells:
-                    # Tìm vị trí cột trống tiếp theo
-                    while col_idx < max_cols and grid[row_idx][col_idx] is not None:
+                    while col_idx < max_cols and data_grid[row_idx][col_idx] is not None:
                         col_idx += 1
 
-                    # Lấy giá trị rowspan và colspan, mặc định là 1
                     rowspan = int(cell.get('rowspan', 1))
                     colspan = int(cell.get('colspan', 1))
                     cell_text = cell.get_text(strip=True)
 
-                    # Điền giá trị vào grid
-                    for r in range(row_idx, min(row_idx + rowspan, len(rows))):
-                        # Thêm hàng mới nếu cần
-                        while len(grid) <= r:
-                            grid.append([None] * max_cols)
+                    classes = cell.get('class', [])
+                    if 'freezebar-cell' in classes:
+                        continue
+                    bg_color = ''
+                    for cls in classes:
+                        if cls in css_colors:
+                            bg_color = css_colors[cls]
+                            break
 
-                        grid[r][col_idx] = cell_text
+                    # Đếm vùng merged để log
+                    if rowspan > 1 or colspan > 1:
+                        merged_count += 1
+
+                    # Chỉ đặt giá trị cho ô đầu tiên, các ô khác để trống
+                    for r in range(row_idx, min(row_idx + rowspan, len(rows))):
+                        while len(data_grid) <= r:
+                            data_grid.append([None] * max_cols)
+                            color_grid.append([None] * max_cols)
+
+                        for c in range(col_idx, min(col_idx + colspan, max_cols)):
+                            if r == row_idx and c == col_idx:
+                                data_grid[r][c] = cell_text
+                            else:
+                                data_grid[r][c] = ''
+                            color_grid[r][c] = bg_color
 
                     col_idx += colspan
 
                 row_idx += 1
 
-            # Chuyển grid thành danh sách dữ liệu
-            data = [[cell if cell is not None else '' for cell in row] for row in grid if any(cell is not None for cell in row)]
+            data = [[cell if cell is not None else '' for cell in row] for row in data_grid if any(cell is not None for cell in row)]
+            colors = [[cell if cell is not None else '' for cell in row] for row in color_grid if any(cell is not None for cell in row)]
 
             if not data:
                 raise Exception("Không có dữ liệu nào được lấy từ sheet.")
 
-            # In 10 hàng đầu tiên để debug
-            # if len(data) < 10:
-            #     print(table.prettify())
-            return data
+            logging.info(f"Đã xử lý {merged_count} vùng merged cells trong bảng")
+            return data, colors
         except Exception as e:
+            logging.error(f"Lỗi khi parse HTML: {e}")
             raise Exception(f"Lỗi khi parse HTML: {e}")
 
-    def process_data(self, data: List[List[str]]) -> Optional[pd.DataFrame]:
-        """Xử lý dữ liệu: bỏ hàng 1, cột 1, xóa các hàng rỗng ở cuối, trả về DataFrame."""
+    def process_data(self, data: List[List[str]], colors: List[List[str]]) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
+        """Xử lý dữ liệu và màu: bỏ hàng 1, cột 1, giữ nguyên các hàng rỗng ở giữa.
+
+        Args:
+            data: Danh sách dữ liệu từ HTML.
+            colors: Danh sách màu nền từ HTML.
+
+        Returns:
+            Tuple chứa DataFrame dữ liệu và DataFrame màu nền.
+        """
         try:
-            df = pd.DataFrame(data[1:])  # Bỏ hàng đầu tiên
-            if df.empty:
-                return None
-            df = df.iloc[:, 1:]  # Bỏ cột đầu tiên
-            if df.empty:
-                return None
+            data_df = pd.DataFrame(data)
+            if data_df.empty:
+                logging.warning("Dữ liệu rỗng sau khi bỏ hàng 1.")
+                return None, None
+            data_df = data_df.iloc[:, 1:]
+            if data_df.empty:
+                logging.warning("Dữ liệu rỗng sau khi bỏ cột 1.")
+                return None, None
 
-            # Thay thế chuỗi rỗng hoặc khoảng trắng bằng NaN
-            df = df.replace(r'^\s*$', np.nan, regex=True)
-            df = df.replace('', np.nan)
+            if not any(data_df.iloc[:1, :]):
+                data_df.iloc[0] = [ chr(ord('A') + i) for i in range(data_df.size[0]) ]
+            color_df = pd.DataFrame(colors)
+            if color_df.empty:
+                logging.warning("Màu nền rỗng sau khi bỏ hàng 1.")
+                return data_df, None
+            color_df = color_df.iloc[:, 1:]
+            if color_df.empty:
+                logging.warning("Màu nền rỗng sau khi bỏ cột 1.")
+                return data_df, None
 
-            # Xóa các hàng mà tất cả giá trị đều là NaN
-            df = df.dropna(how='all')
+            # Thay thế chuỗi rỗng và khoảng trắng bằng np.nan, nhưng giữ nguyên cấu trúc
+            data_df = data_df.replace(r'^\s*$', np.nan, regex=True)
+            data_df = data_df.replace('', np.nan)
 
-            if df.empty:
-                return None
-            return df
+            # Đồng bộ kích thước của color_df với data_df
+            color_df = color_df.loc[:data_df.index[-1], :data_df.columns[-1]]
+
+            if data_df.empty:
+                logging.warning("Dữ liệu rỗng sau khi xử lý.")
+                return None, None
+            logging.info(f"Đã xử lý dữ liệu: {data_df.shape[0]} hàng, {data_df.shape[1]} cột")
+            return data_df, color_df
         except Exception as e:
+            logging.error(f"Lỗi khi xử lý dữ liệu: {e}")
             raise Exception(f"Lỗi khi xử lý dữ liệu: {e}")
 
-    def save_to_excel(self, df: pd.DataFrame, output_file: str) -> None:
-        """Lưu DataFrame thành file XLSX hoặc CSV, không có index và header."""
-        try:
-            if output_file.endswith(".csv"):
-                df.to_csv(output_file, index=False, header=False, encoding="utf-8")
-            else:
-                df.to_excel(output_file, index=False, header=False, engine="openpyxl")
-            print(f"Đã lưu dữ liệu vào {output_file}")
-        except Exception as e:
-            raise Exception(f"Lỗi khi lưu file: {e}")
+    def save_to_excel(self, data_df: pd.DataFrame, color_df: pd.DataFrame, output_file: str) -> None:
+        """Lưu DataFrame thành file Excel với màu nền.
 
-    def download(self, output_file: str = 'downloaded_sheet.xlsx') -> None:
-        """Tải Google Sheet, bỏ hàng 1, cột 1, xóa hàng rỗng ở cuối, lưu thành file."""
+        Args:
+            data_df: DataFrame chứa dữ liệu.
+            color_df: DataFrame chứa mã màu hex.
+            output_file: Đường dẫn file Excel đầu ra.
+
+        Raises:
+            Exception: Nếu lỗi khi lưu file.
+        """
         try:
-            html_content = self.fetch_html()
-            data = self.parse_html_to_data(html_content)
-            df = self.process_data(data)
-            if df is None:
-                print("Dữ liệu rỗng sau khi xử lý.")
-                return
-            self.save_to_excel(df, output_file)
+            os.makedirs(os.path.dirname(output_file), exist_ok=True)
+            output_file = output_file if output_file.endswith('.xlsx') else f"{output_file}.xlsx"
+            
+            wb = Workbook()
+            ws = wb.active
+
+            # Ghi dữ liệu vào worksheet
+            for r_idx, row in enumerate(data_df.values, start=1):
+                for c_idx, value in enumerate(row, start=1):
+                    ws.cell(row=r_idx, column=c_idx).value = value if pd.notna(value) else None
+
+            # Áp dụng màu nền
+            if color_df is not None:
+                for r_idx, row in enumerate(color_df.values, start=1):
+                    for c_idx, color in enumerate(row, start=1):
+                        if color and isinstance(color, str) and color.startswith('#'):
+                            fill = PatternFill(start_color=color[1:], end_color=color[1:], fill_type='solid')
+                            ws.cell(row=r_idx, column=c_idx).fill = fill
+
+            # Điều chỉnh độ rộng cột
+            for col_idx in range(1, data_df.shape[1] + 1):
+                col_letter = get_column_letter(col_idx)
+                max_length = 0
+                for cell in ws[col_letter]:
+                    try:
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
+                    except:
+                        pass
+                adjusted_width = max_length + 2
+                ws.column_dimensions[col_letter].width = adjusted_width
+
+            wb.save(output_file)
+            logging.info(f"Đã lưu dữ liệu và màu nền vào {output_file}")
+            print(f"Đã lưu dữ liệu và màu nền vào {output_file}")
         except Exception as e:
+            logging.error(f"Lỗi khi lưu file Excel: {e}")
+            raise Exception(f"Lỗi khi lưu file Excel: {e}")
+
+    def download(self, output_file: str = 'current/downloaded_sheet.xlsx') -> str:
+        """Tải Google Sheet, bỏ hàng 1, cột 1, lưu dữ liệu và màu nền vào file Excel.
+
+        Args:
+            output_file: Đường dẫn file Excel đầu ra.
+        """
+        download_url = ''
+        try:
+            download_url, html_content = self.fetch_html()
+            data, colors = self.parse_html_to_data(html_content)
+            data_df, color_df = self.process_data(data, colors)
+            if data_df is None:
+                logging.warning("Dữ liệu rỗng sau khi xử lý.")
+                print("Dữ liệu rỗng sau khi xử lý.")
+                return download_url
+            self.save_to_excel(data_df, color_df, output_file)
+        except Exception as e:
+            logging.error(f"Lỗi khi tải và lưu Google Sheet: {e}")
             print(f"Lỗi: {e}")
             print("Kiểm tra xem sheet có công khai hoặc cho phép xem qua link không.")
-            print("\n=======================")
-
-# Chạy với thông tin từ URL
-if __name__ == "__main__":
-    proxies = {
-        'http': 'http://rb-proxy-apac.bosch.com:8080',
-        'https': 'http://rb-proxy-apac.bosch.com:8080'
-    }
-    downloader = GoogleSheetDownloader(
-        spreadsheet_id='1O_JiM4VD0VlC1X0LmnvX5_eKpLCbzom8',
-        gid='1453345957',
-        proxies=proxies
-    )
-    downloader.download(output_file="downloaded_sheet.csv")
+        return download_url

@@ -14,7 +14,8 @@ class AgentConfig:
             gid: str,
             html_url: str,
             key_column: str,
-            check_columns: List[str]
+            check_columns: List[str],
+            valid_colors: List[str] = ["#ffffff"],
         ):
             self.project_name = project_name
             self.spreadsheet_id = spreadsheet_id
@@ -22,6 +23,7 @@ class AgentConfig:
             self.html_url = html_url
             self.key_column = key_column
             self.check_columns = check_columns
+            self.valid_colors = valid_colors
 
             # Kiểm tra dữ liệu
             self._validate()
@@ -90,6 +92,7 @@ class AgentConfig:
                 project_name=data['project_name'],
                 spreadsheet_id=data.get('spreadsheet_id'),
                 gid=data['gid'],
+                valid_colors=data.get('valid_colors', ["#ffffff"]),
                 html_url=data.get('html_url'),
                 key_column=data['key_column'],
                 check_columns=data['check_columns']
@@ -101,6 +104,7 @@ class AgentConfig:
                     project_name=item['project_name'],
                     spreadsheet_id=item.get('spreadsheet_id'),
                     gid=item['gid'],
+                    valid_colors=item.get('valid_colors', ["#ffffff"]),
                     html_url=item.get('html_url'),
                     key_column=item['key_column'],
                     check_columns=item['check_columns']

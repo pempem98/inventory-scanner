@@ -1,6 +1,6 @@
 {
     "allowed_key_pattern": "^[A-Z0-9_.-]+$",
-    "snapshot_extension": ".csv",
+    "snapshot_extension": ".xlsx",
     "project_prefix": {
         "C4": "LSB",
         "A2": "MGA",
