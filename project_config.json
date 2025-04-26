@@ -4,7 +4,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1eqGTrCjn4hKK1RfmL521IorH5Rc2X1j38zEnfbSa1dA",
             "gid": "34236590",
-            "valid_colors": ["#ffc000", "#ffff00"],
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"

@@ -1,3 +1,4 @@
+import os
 import logging
 import requests
 from typing import List, Dict, Any
@@ -26,6 +27,33 @@ class TelegramNotifier:
         self.telegram_config = workflow_config.get('telegram', {})
         self.bot_token = self.telegram_config.get('bot_token')
         self.chat_id = self.telegram_config.get('chat_id')
+
+    def send_document(self, file_path: str) -> None:
+        """Gửi file báo cáo qua Telegram dưới dạng tài liệu.
+
+        Args:
+            file_path: Đường dẫn đến file cần gửi (e.g., Excel report).
+        """
+        if not self.bot_token or not self.chat_id:
+            logging.warning("Thiếu bot_token hoặc chat_id, không gửi file.")
+            return
+
+        if not os.path.exists(file_path):
+            logging.error(f"File {file_path} không tồn tại, không gửi.")
+            return
+
+        try:
+            url = f"{self.base_url}/sendDocument"
+            with open(file_path, 'rb') as file:
+                files = {'document': (os.path.basename(file_path), file, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
+                data = {'chat_id': self.chat_id}
+                response = requests.post(url, data=data, files=files, timeout=30)
+                if response.status_code != 200:
+                    logging.error(f"Gửi file thất bại: {response.text}")
+                else:
+                    logging.info(f"Đã gửi file: {file_path}")
+        except Exception as e:
+            logging.error(f"Lỗi khi gửi file {file_path}: {e}")
 
     def send_message(self, results: List[Dict[str, Any]]=[], messages: List[str]=[]) -> None:
         """Gửi tin nhắn Telegram với thông tin căn thêm mới, đã bán và lỗi."""
@@ -66,19 +94,20 @@ class TelegramNotifier:
                 if not added and not removed:
                     continue
 
-                message = f"Đại lý {agent_name}\nDự án {short_project_name}\n\n"
+                message = f"🏢 <b>Đại lý</b>: {agent_name}\n"
+                message += f"📋 <b>Dự án</b>: {short_project_name}\n\n"
                 if added:
-                    message += "Nhập thêm:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in added]) + "</blockquote>\n\n"
+                    message += "➕ <b>Nhập thêm</b>:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in added]) + "</blockquote>\n\n"
                 else:
-                    message += "Nhập thêm: Không có\n\n"
+                    message += "➕ <b>Nhập thêm</b>: Không có\n\n"
                 if removed:
-                    message += "Đã bán:\n<blockquote expandable>Đã bán " + "\nĐã bán ".join([f"<b>{key}</b>" for key in removed])  + "</blockquote>"
+                    message += "✅ <b>Đã bán</b>:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in removed]) + "</blockquote>"
                     if remaining:
-                        message += "\n\nQuỹ căn hiện tại:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in remaining]) + "</blockquote>"
+                        message += "\n\n📊 <b>Quỹ căn hiện tại</b>:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in remaining]) + "</blockquote>"
                     else:
-                        message += "\n\nQuỹ căn hiện tại: Không có"
+                        message += "\n\n📊 <b>Quỹ căn hiện tại</b>: Không có"
                 else:
-                    message += "Đã bán: Không có"
+                    message += "✅ <b>Đã bán</b>: Không có"
 
                 messages.append(message)
 
@@ -128,8 +157,7 @@ class TelegramNotifier:
 
         # Gửi đường dẫn file báo cáo
         if report_file:
-            report_message = f"📎 Báo cáo chi tiết: <code>{report_file}</code>"
-            self.send_message(messages=[report_message])
+            self.send_document(file_path=report_file)
 
 if __name__ == "__main__":
     # Ví dụ sử dụng TelegramNotifier
