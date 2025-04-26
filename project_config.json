@@ -246,7 +246,7 @@
             "project_name": "LSB",
             "html_url": "https://partner.futurehomes.vn/",
             "gid": "SpringBay",
-            "valid_colors": ["##ffff00", "#ffffff"],
+            "valid_colors": ["##ffff00", "#ffffff", "#000000"],
             "key_column": "A",
             "check_columns": [
                 "I"
@@ -256,7 +256,7 @@
             "project_name": "MLS",
             "html_url": "https://partner.futurehomes.vn/",
             "gid": "LakeSide",
-            "valid_colors": ["##ffff00", "#ffffff"],
+            "valid_colors": ["##ffff00", "#ffffff", "#000000"],
             "key_column": "A",
             "check_columns": [
                 "I"
@@ -266,7 +266,7 @@
             "project_name": "MTS",
             "html_url": "https://partner.futurehomes.vn/",
             "gid": "TrinitySquare",
-            "valid_colors": ["##ffff00", "#ffffff"],
+            "valid_colors": ["##ffff00", "#ffffff", "#000000"],
             "key_column": "A",
             "check_columns": [
                 "I"

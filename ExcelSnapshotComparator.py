@@ -123,6 +123,8 @@ class ExcelSnapshotComparator:
 
             # Tìm index của key_col và check_cols
             header = pred_df.iloc[0].tolist()
+            if not any(np.nan == cell for cell in header):
+                header = [ chr(ord('A') + i) for i in range(len(header)) ]
             key_col_idx = header.index(self.key_col) if self.key_col in header else None
             if key_col_idx is None:
                 logging.error(f"Không tìm thấy cột {self.key_col} trong {self.file_predecessor}")
