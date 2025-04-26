@@ -28,6 +28,7 @@ class ReportGenerator:
             workflow_config_file: Đường dẫn đến file workflow config chứa project_prefix.
         """
         self.results = results
+        self.aligned_results = {}
         self.output_dir = output_dir
         self.workflow_config_file = workflow_config_file
         self.workflow_config = self._load_workflow_config()
@@ -61,7 +62,6 @@ class ReportGenerator:
 
         for agent_name, projects in self.results.items():
             for project_name, comparison in projects.items():
-                status = 'Success' if any(comparison.get(key, []) for key in ['added', 'removed', 'changed', 'remaining']) else 'Failed'
 
                 formatted_comparison = {
                     'added': comparison.get('added', []),
@@ -75,14 +75,16 @@ class ReportGenerator:
                         }
                         for change in comparison.get('changed', [])
                         for col, values in change['changes'].items()
-                    ]
+                    ],
+                    'remaining': comparison.get('remaining', [])
                 }
 
                 converted_results.append({
                     'agent_name': agent_name,
                     'project_name': project_name,
-                    'status': status,
-                    'comparison': formatted_comparison
+                    'comparison': formatted_comparison,
+                    'message': comparison.get('message', ''),
+                    'url': comparison.get('url', '').replace('htmlview', 'edit'),
                 })
 
         return converted_results
@@ -117,7 +119,6 @@ class ReportGenerator:
 
         for result in results:
             agent_name = result.get('agent_name') or 'Unknown'
-            status = result.get('status') or 'N/A'
             comparison = result.get('comparison') or {'added': [], 'removed': [], 'changed': []}
 
             short_project_name = self._get_project_name_from_keys(comparison, project_prefix)
@@ -125,55 +126,39 @@ class ReportGenerator:
             group_key = (agent_name, short_project_name)
             if group_key not in grouped_results:
                 grouped_results[group_key] = {
-                    'status': 'Success',
-                    'added': set(),
-                    'removed': set(),
-                    'changed': []
+                    'added': comparison.get('added') or [],  # Danh sách các key mới thêm
+                    'removed': comparison.get('removed') or [],  # Danh sách các key đã loại bỏ
+                    'changed': comparison.get('changed') or []  # Danh sách các thay đổi
                 }
-
-            if status != 'Success':
-                grouped_results[group_key]['status'] = 'N/A'
-            else:
-                added = comparison.get('added') or []
-                removed = comparison.get('removed') or []
-                changed = comparison.get('changed') or []
-                grouped_results[group_key]['added'].update([str(item) for item in added if item and len(item) > 0])
-                grouped_results[group_key]['removed'].update([str(item) for item in removed if item and len(item) > 0])
-                grouped_results[group_key]['changed'].extend([item for item in changed if item is not None])
 
         for (agent_name, short_project_name), info in grouped_results.items():
             added_lines = []
             removed_lines = []
             changed_lines = []
 
-            if info['status'] == 'Failed':
-                added_lines.append("N/A")
-                removed_lines.append("N/A")
-                changed_lines.append("N/A")
+            added = info['added']
+            removed = info['removed']
+            changed = info['changed']
+
+            if added:
+                added_lines.extend([f"{key}" for key in sorted(added)])
             else:
-                added = info['added']
-                removed = info['removed']
-                changed = info['changed']
+                added_lines.append("- No update")
 
-                if added:
-                    added_lines.extend([f"{key}" for key in sorted(added)])
-                else:
-                    added_lines.append("- No update")
+            if removed:
+                removed_lines.extend([f"{key}" for key in sorted(removed)])
+            else:
+                removed_lines.append("- No update")
 
-                if removed:
-                    removed_lines.extend([f"{key}" for key in sorted(removed)])
-                else:
-                    removed_lines.append("- No update")
-
-                if changed:
-                    for change in changed:
-                        key = change.get('key') or 'Unknown'
-                        col = change.get('column') or 'Unknown'
-                        before = change.get('before', 'Unknown')
-                        after = change.get('after', 'Unknown')
-                        changed_lines.append(f"{key}: {col}: {before} -> {after}")
-                else:
-                    changed_lines.append("- No update")
+            if changed:
+                for change in changed:
+                    key = change.get('key') or 'Unknown'
+                    col = change.get('column') or 'Unknown'
+                    before = change.get('before', 'Unknown')
+                    after = change.get('after', 'Unknown')
+                    changed_lines.append(f"{key}: {col}: {before} -> {after}")
+            else:
+                changed_lines.append("- No update")
 
             row = {
                 'Đại lý': agent_name,
@@ -195,7 +180,6 @@ class ReportGenerator:
 
         for result in results:
             agent_name = result.get('agent_name') or 'Unknown'
-            status = result.get('status') or 'N/A'
             comparison = result.get('comparison') or {'added': [], 'removed': [], 'changed': []}
 
             short_project_name = self._get_project_name_from_keys(comparison, project_prefix)
@@ -203,28 +187,23 @@ class ReportGenerator:
             group_key = (agent_name, short_project_name)
             if group_key not in grouped_results:
                 grouped_results[group_key] = {
-                    'status': 'Success',
                     'added': set(),
                     'removed': set(),
                     'changed': []
                 }
 
-            if status != 'Success':
-                grouped_results[group_key]['status'] = 'N/A'
-            else:
-                added = comparison.get('added') or []
-                removed = comparison.get('removed') or []
-                changed = comparison.get('changed') or []
-                grouped_results[group_key]['added'].update([str(item) for item in added if item and len(item) > 0])
-                grouped_results[group_key]['removed'].update([str(item) for item in removed if item and len(item) > 0])
-                grouped_results[group_key]['changed'].extend([item for item in changed if item is not None])
+            added = comparison.get('added') or []
+            removed = comparison.get('removed') or []
+            changed = comparison.get('changed') or []
+            grouped_results[group_key]['added'].update([str(item) for item in added if item and len(item) > 0])
+            grouped_results[group_key]['removed'].update([str(item) for item in removed if item and len(item) > 0])
+            grouped_results[group_key]['changed'].extend([item for item in changed if item is not None])
 
         details_data = []
         for (agent_name, short_project_name), info in grouped_results.items():
             detail_entry = {
                 'agent_name': agent_name,
                 'project_name': short_project_name,
-                'status': info['status']
             }
             detail_entry.update({
                 'added': sorted(list(info['added'])),
@@ -243,6 +222,7 @@ class ReportGenerator:
 
         # Chuyển đổi results sang định dạng danh sách
         converted_results = self._convert_results_format()
+        self.aligned_results = converted_results
 
         # Tạo sheet chi tiết
         df_detail = self._create_detail_sheet(converted_results)
@@ -271,7 +251,7 @@ class ReportGenerator:
                                 max_length = max(max_length, len(str(cell.value)))
                         except:
                             pass
-                    adjusted_width = max(max_length + 2, 30)
+                    adjusted_width = min(max(max_length + 2, 20), 50)
                     worksheet.column_dimensions[column].width = adjusted_width
 
             logging.info(f"Đã tạo báo cáo Excel tại {excel_file}")
@@ -290,47 +270,3 @@ class ReportGenerator:
             raise
 
         return excel_file
-
-if __name__ == "__main__":
-    # Dữ liệu giả lập mô phỏng kết quả từ WorkflowManager
-    example_results = {
-        "ATD": {
-            "C3_LSB": {
-                "added": [["C3_Product_001", "Tòa A", "Mới"]],
-                "removed": [],
-                "changed": [
-                    {"key": "C3_Product_002", "changes": {"Quantity": {"old": 100, "new": 150}}}
-                ],
-                "remaining": [["C3_Product_003", "Tòa B", "Cũ"]]
-            },
-            "C7_LSB": {
-                "added": [["C3_Product_004", "Tòa C", "Mới"]],
-                "removed": [["C3_Product_005", "Tòa D", "Cũ"]],
-                "changed": [],
-                "remaining": []
-            }
-        },
-        "XYZ": {
-            "C5_MLS": {
-                "added": [],
-                "removed": [],
-                "changed": [],
-                "remaining": []
-            }
-        }
-    }
-
-    # Giả lập workflow_config.json
-    example_config = {
-        'project_prefix': {
-            'C3': 'LSB',
-            'C4': 'MGA',
-            'C5': 'MLS'
-        }
-    }
-    with open('workflow_config.json', 'w', encoding='utf-8') as f:
-        json.dump(example_config, f, indent=2)
-
-    # Khởi tạo và chạy ReportGenerator
-    report_generator = ReportGenerator(results=example_results, workflow_config_file='workflow_config.json')
-    report_generator.generate_report()

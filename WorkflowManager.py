@@ -4,7 +4,7 @@ import shutil
 import time
 from datetime import datetime
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from AgentConfig import AgentConfig
 from GoogleSheetDownloader import GoogleSheetDownloader
 from ExcelSnapshotComparator import ExcelSnapshotComparator
@@ -128,7 +128,7 @@ class WorkflowManager:
         else:
             logging.warning(f"Thư mục {self.current_dir} vẫn còn file sau khi sao chép: {os.listdir(self.current_dir)}")
 
-    def _download_snapshot(self, agent_name: str, config: AgentConfig.Config) -> str:
+    def _download_snapshot(self, agent_name: str, config: AgentConfig.Config) -> Tuple[str, str]:
         """Tải Google Sheet và lưu snapshot vào thư mục current."""
         start_time = time.time()
         file_name = self._get_file_name(agent_name, config, self.current_dir)
@@ -142,14 +142,14 @@ class WorkflowManager:
             gid=config.gid,
             proxies=self.proxies
         )
-        downloader.download(output_file=file_name)
+        download_url = downloader.download(output_file=file_name)
 
         if not os.path.exists(file_name):
             logging.error(f"Không tạo được file snapshot {file_name} cho {agent_name}/{config.project_name}")
-            return ''
+            return '', ''
 
         logging.info(f"Đã tải snapshot {file_name} cho {agent_name}/{config.project_name} trong {time.time() - start_time:.2f}s")
-        return file_name
+        return file_name, download_url
 
     def _compare_snapshots(self, agent_name: str, config: AgentConfig.Config) -> Dict[str, List]:
         """So sánh file current với predecessor."""
@@ -166,8 +166,9 @@ class WorkflowManager:
             return result
 
         if not predecessor_file:
-            logging.info(f"Không tìm thấy file predecessor cho {agent_name}/{config.project_name}. Bỏ qua so sánh.")
-            result['message'] = f"[Warning] Bản ghi cũ {predecessor_file} không tồn tại."
+            message = f"Không tìm thấy bản ghi cũ cho {agent_name}/{config.project_name}. Bỏ qua so sánh."
+            logging.info(message)
+            result['message'] = f"[Warning] {message}"
             return result
 
         comparator = ExcelSnapshotComparator(
@@ -203,14 +204,14 @@ class WorkflowManager:
                 results[agent_name] = {}
                 for config in agent_configs:
                     logging.info(f"Xử lý {agent_name}/{config.project_name}")
-                    snapshot_file = self._download_snapshot(agent_name, config)
+                    snapshot_file, download_url = self._download_snapshot(agent_name, config)
                     if snapshot_file:
                         result = self._compare_snapshots(agent_name, config)
-                        results[agent_name][config.project_name] = result
                     else:
                         result = {'message': f"[Error] Không tải được bản ghi cho {agent_name}/{config.project_name}"}
                         result.update({'added': [], 'removed': [], 'changed': [], 'remaining': []})
-                        results[agent_name][config.project_name] = result
+                    result['url'] = download_url
+                    results[agent_name][config.project_name] = result
             except Exception as e:
                 logging.error(f"Lỗi khi xử lý đại lý {agent_name}: {e}")
                 continue
@@ -224,17 +225,18 @@ class WorkflowManager:
         report_file = report_generator.generate_report()
 
         # Gửi thông báo Telegram
+        aligned_results = report_generator.aligned_results
         telegram_config = self.workflow_config.get('telegram', {})
         if telegram_config.get('bot_token') and telegram_config.get('chat_id'):
             notifier = TelegramNotifier(
                 workflow_config=self.workflow_config,
             )
-            notifier.notify(results, report_file)
+            notifier.notify(aligned_results, report_file)
         else:
             logging.warning("Thiếu cấu hình Telegram, bỏ qua thông báo.")
 
         logging.info(f"Hoàn thành workflow trong {time.time() - start_time:.2f}s")
-        return results
+        return aligned_results
 
 if __name__ == "__main__":
     proxies = {

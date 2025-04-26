@@ -54,7 +54,7 @@ class GoogleSheetDownloader:
             session.mount('https://', HTTPAdapterWithProxyKerberosAuth())
         self.session = session
 
-    def fetch_html(self) -> str:
+    def fetch_html(self) -> Tuple[str, str]:
         """Tải nội dung HTML từ Google Sheet qua /htmlview.
 
         Returns:
@@ -68,7 +68,7 @@ class GoogleSheetDownloader:
         try:
             response = self.session.get(html_url, verify=False)
             response.raise_for_status()
-            return response.text
+            return html_url, response.text
         except Exception as e:
             logging.error(f"Lỗi khi tải HTML: {e}")
             raise Exception(f"Lỗi khi tải HTML: {e}")
@@ -157,6 +157,8 @@ class GoogleSheetDownloader:
                     cell_text = cell.get_text(strip=True)
 
                     classes = cell.get('class', [])
+                    if 'freezebar-cell' in classes:
+                        continue
                     bg_color = ''
                     for cls in classes:
                         if cls in css_colors:
@@ -292,43 +294,24 @@ class GoogleSheetDownloader:
             logging.error(f"Lỗi khi lưu file Excel: {e}")
             raise Exception(f"Lỗi khi lưu file Excel: {e}")
 
-    def download(self, output_file: str = 'current/downloaded_sheet.xlsx') -> None:
+    def download(self, output_file: str = 'current/downloaded_sheet.xlsx') -> str:
         """Tải Google Sheet, bỏ hàng 1, cột 1, lưu dữ liệu và màu nền vào file Excel.
 
         Args:
             output_file: Đường dẫn file Excel đầu ra.
         """
+        download_url = ''
         try:
-            html_content = self.fetch_html()
+            download_url, html_content = self.fetch_html()
             data, colors = self.parse_html_to_data(html_content)
             data_df, color_df = self.process_data(data, colors)
             if data_df is None:
                 logging.warning("Dữ liệu rỗng sau khi xử lý.")
                 print("Dữ liệu rỗng sau khi xử lý.")
-                return
+                return download_url
             self.save_to_excel(data_df, color_df, output_file)
         except Exception as e:
             logging.error(f"Lỗi khi tải và lưu Google Sheet: {e}")
             print(f"Lỗi: {e}")
             print("Kiểm tra xem sheet có công khai hoặc cho phép xem qua link không.")
-
-if __name__ == "__main__":
-    proxies = {
-        'http': 'http://rb-proxy-apac.bosch.com:8080',
-        'https': 'http://rb-proxy-apac.bosch.com:8080'
-    }
-    downloader_south = GoogleSheetDownloader(
-        spreadsheet_id='1wxSFdMeIwHcijdeqOj0oFQcFGqi_8RFT',
-        html_url='',
-        gid='723417714',
-        # proxies=proxies
-    )
-    downloader_south.download(output_file="current/C3L2_snapshot.xlsx")
-
-    downloader_central = GoogleSheetDownloader(
-        spreadsheet_id='1ETiPs6SRmq7jo28rLNgDSTdy4IpFgTZWBUlpbJYZaWs',
-        html_url='',
-        gid='1585243814',
-        # proxies=proxies
-    )
-    downloader_central.download(output_file="current/Central_snapshot.xlsx")
+        return download_url
