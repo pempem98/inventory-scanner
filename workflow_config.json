@@ -1,6 +1,6 @@
 {
     "allowed_key_pattern": "^[A-Z0-9_.-]+$",
-    "snapshot_extension": ".csv",
+    "snapshot_extension": ".xlsx",
     "project_prefix": {
         "C4": "LSB",
         "A2": "MGA",
@@ -13,6 +13,6 @@
     },
     "telegram": {
         "bot_token": "8067863112:AAGgxTH48MEXmtK8IMvOIKWtiFa5yGcf4C0",
-        "chat_id": "-4646944138"
+        "chat_id": "5749118184"
     }
 }

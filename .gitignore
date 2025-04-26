@@ -7,7 +7,7 @@ current
 predecessor
 extracted_data
 extracted_removed
-report
+reports
 build
 dist
 *.pyc

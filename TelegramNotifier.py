@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 
 # Thiết lập logging
 logging.basicConfig(
-    filename='telegram_notifier.log',
+    filename='runtime.log',
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     encoding='utf-8'
@@ -73,7 +73,10 @@ class TelegramNotifier:
                     message += "Nhập thêm: Không có\n\n"
                 if removed:
                     message += "Đã bán:\n<blockquote expandable>Đã bán " + "\nĐã bán ".join([f"<b>{key}</b>" for key in removed])  + "</blockquote>"
-                    message += "\n\nQuỹ căn hiện tại:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in remaining]) + "</blockquote>"
+                    if remaining:
+                        message += "\n\nQuỹ căn hiện tại:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in remaining]) + "</blockquote>"
+                    else:
+                        message += "\n\nQuỹ căn hiện tại: Không có"
                 else:
                     message += "Đã bán: Không có"
 
@@ -96,6 +99,38 @@ class TelegramNotifier:
             except Exception as e:
                 logging.error(f"Lỗi khi gửi tin nhắn Telegram: {e}")
 
+    def notify(self, results: Dict[str, Dict[str, Dict[str, List]]], report_file: str) -> None:
+        """Gửi thông báo Telegram với kết quả so sánh và đường dẫn file báo cáo."""
+        if not self.bot_token or not self.chat_id:
+            logging.warning("Thiếu cấu hình Telegram (bot_token hoặc chat_id) trong workflow_config.json.")
+            return
+
+        # Chuyển đổi results sang định dạng danh sách
+        converted_results = []
+        for agent_name, projects in results.items():
+            for project_name, comparison in projects.items():
+                status = 'Success' if any(comparison.get(key, []) for key in ['added', 'removed', 'changed', 'remaining']) else 'Failed'
+                converted_results.append({
+                    'agent_name': agent_name,
+                    'project_name': project_name,
+                    'status': status,
+                    'comparison': {
+                        'added': [item for item in comparison.get('added', []) if item and len(item) > 0],
+                        'removed': [item for item in comparison.get('removed', []) if item and len(item) > 0],
+                        'changed': comparison.get('changed', []),
+                        'remaining': [item for item in comparison.get('remaining', []) if item and len(item) > 0]
+                    },
+                    'message': ''
+                })
+
+        # Gửi thông báo chính
+        self.send_message(converted_results)
+
+        # Gửi đường dẫn file báo cáo
+        if report_file:
+            report_message = f"📎 Báo cáo chi tiết: <code>{report_file}</code>"
+            self.send_message(messages=[report_message])
+
 if __name__ == "__main__":
     # Ví dụ sử dụng TelegramNotifier
     sample_workflow_config = {
@@ -105,48 +140,34 @@ if __name__ == "__main__":
         },
         "telegram": {
             "bot_token": "8067863112:AAGgxTH48MEXmtK8IMvOIKWtiFa5yGcf4C0",  # Thay bằng bot token thực
-            "chat_id": "-4646944138"       # Thay bằng chat ID thực
+            "chat_id": "5749118184"       # Thay bằng chat ID thực
         }
     }
 
-    sample_results = [
-        {
-            "agent_name": "ATD",
-            "project_name": "C3_LSB",
-            "status": "Success",
-            "comparison": {
-                "added": ["C3_Product_001", "C3_Product_002"],
-                "removed": ["C3_Product_003"],
-                "changed": []
+    sample_results = {
+        "ATD": {
+            "C3_LSB": {
+                "added": [["C3_Product_001", "Tòa A", "Mới"], ["C3_Product_002", "Tòa B", "Mới"]],
+                "removed": [["C3_Product_003", "Tòa C", "Cũ"]],
+                "changed": [],
+                "remaining": [["C3_Product_004", "Tòa D", "Cũ"]]
             }
         },
-        {
-            "agent_name": "XYZ",
-            "project_name": "C4_MGA",
-            "status": "Failed",
-            "comparison": {
+        "XYZ": {
+            "C4_MGA": {
                 "added": [],
                 "removed": [],
-                "changed": []
-            }
-        },
-        {
-            "agent_name": "HOMEPLUS",
-            "project_name": "C5_MLS",
-            "status": "Failed",
-            "comparison": {
-                "added": [],
-                "removed": [],
-                "changed": []
+                "changed": [],
+                "remaining": []
             }
         }
-    ]
+    }
 
     sample_proxies = {
         'http': 'http://rb-proxy-apac.bosch.com:8080',
         'https': 'http://rb-proxy-apac.bosch.com:8080'
     }
 
-    # Khởi tạo và gửi tin nhắn thử
+    # Khởi tạo và gửi thông báo thử
     notifier = TelegramNotifier(sample_workflow_config)
-    notifier.send_message(sample_results)
+    notifier.notify(sample_results, "reports/report_20250426_100000.xlsx")

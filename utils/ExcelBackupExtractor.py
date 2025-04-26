@@ -199,7 +199,6 @@ class ExcelBackupExtractor:
         for entry in self.results:
             print(entry)
             print("-" * 30)
-        print("=======================")
 
 def main():
     # Khởi tạo và chạy extractor

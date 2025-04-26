@@ -4,27 +4,38 @@ from datetime import datetime
 import logging
 import pandas as pd
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Alignment
 from typing import List, Dict, Any
+
+# Thiết lập logging
+logging.basicConfig(
+    filename='runtime.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    encoding='utf-8'
+)
 
 class ReportGenerator:
     """Class để tạo báo cáo Excel và JSON từ kết quả workflow."""
 
-    def __init__(self, workflow_config_file: str = 'workflow_config.json', report_dir: str = 'report'):
+    def __init__(self, results: Dict[str, Dict[str, Dict[str, List]]], output_dir: str = 'reports', workflow_config_file: str = 'workflow_config.json'):
         """
         Khởi tạo ReportGenerator.
 
         Args:
+            results: Dictionary chứa kết quả so sánh {agent_name: {project_name: {added, removed, changed, remaining}}}.
+            output_dir: Thư mục lưu file báo cáo (mặc định là thư mục 'reports').
             workflow_config_file: Đường dẫn đến file workflow config chứa project_prefix.
-            report_dir: Thư mục lưu file báo cáo (mặc định là thư mục 'report').
         """
+        self.results = results
+        self.output_dir = output_dir
         self.workflow_config_file = workflow_config_file
-        self.report_dir = report_dir
         self.workflow_config = self._load_workflow_config()
 
         # Đảm bảo thư mục báo cáo tồn tại
-        if not os.path.exists(report_dir):
-            os.makedirs(report_dir)
-            logging.info(f"Đã tạo thư mục báo cáo {report_dir}.")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            logging.info(f"Đã tạo thư mục báo cáo {output_dir}.")
 
     def _load_workflow_config(self) -> Dict[str, Any]:
         """Đọc file workflow config."""
@@ -43,29 +54,38 @@ class ReportGenerator:
             logging.error(f"Lỗi khi đọc file {self.workflow_config_file}: {e}, dùng config mặc định.")
             return default_config
 
-    def _create_summary_sheet(self, results: List[Dict[str, Any]]) -> pd.DataFrame:
-        """Tạo DataFrame cho sheet tổng quan."""
-        project_prefix = self.workflow_config.get('project_prefix', {}) or {}
-        columns = ['Đại lý'] + [f"Dự án {name}" for name in project_prefix.values()]
-        data = {}
+    def _convert_results_format(self) -> List[Dict[str, Any]]:
+        """Chuyển đổi results từ dictionary lồng nhau sang danh sách để tương thích với các phương thức hiện tại."""
+        converted_results = []
+        project_prefix = self.workflow_config.get('project_prefix', {})
 
-        for result in results:
-            # Kiểm tra NoneType
-            agent_name = result.get('agent_name') or 'Unknown'
-            project_name = result.get('project_name') or 'Unknown'
-            status = result.get('status') or 'N/A'
+        for agent_name, projects in self.results.items():
+            for project_name, comparison in projects.items():
+                status = 'Success' if any(comparison.get(key, []) for key in ['added', 'removed', 'changed', 'remaining']) else 'Failed'
 
-            if agent_name not in data:
-                data[agent_name] = {'Đại lý': agent_name}
-                for project_name_col in project_prefix.values():
-                    data[agent_name][f"Dự án {project_name_col}"] = 'N/A'
+                formatted_comparison = {
+                    'added': comparison.get('added', []),
+                    'removed': comparison.get('removed', []),
+                    'changed': [
+                        {
+                            'key': change['key'],
+                            'column': col,
+                            'before': values['old'],
+                            'after': values['new']
+                        }
+                        for change in comparison.get('changed', [])
+                        for col, values in change['changes'].items()
+                    ]
+                }
 
-            for prefix, project_name_col in project_prefix.items():
-                if project_name.startswith(prefix):
-                    data[agent_name][f"Dự án {project_name_col}"] = status
-                    break
+                converted_results.append({
+                    'agent_name': agent_name,
+                    'project_name': project_name,
+                    'status': status,
+                    'comparison': formatted_comparison
+                })
 
-        return pd.DataFrame(list(data.values()), columns=columns)
+        return converted_results
 
     def _get_project_name_from_keys(self, comparison: Dict[str, Any], project_prefix: Dict[str, str]) -> str:
         """Xác định tên dự án ngắn từ prefix trong key của added, removed, changed."""
@@ -76,10 +96,9 @@ class ReportGenerator:
         removed = comparison.get('removed') or []
         changed = comparison.get('changed') or []
 
-        # Kiểm tra tất cả key để tìm prefix
         keys = []
-        keys.extend([str(item) for item in added if item is not None])
-        keys.extend([str(item) for item in removed if item is not None])
+        keys.extend([str(item) for item in added if item and len(item) > 0])
+        keys.extend([str(item) for item in removed if item and len(item) > 0])
         keys.extend([str(change.get('key', '')) for change in changed if change and change.get('key') is not None])
 
         for key in keys:
@@ -96,17 +115,13 @@ class ReportGenerator:
         columns = ['Đại lý', 'Dự án', 'Thêm mới', 'Loại bỏ', 'Thay đổi']
         grouped_results = {}
 
-        # Nhóm dữ liệu theo agent_name và tên dự án ngắn từ key
         for result in results:
-            # Kiểm tra NoneType
             agent_name = result.get('agent_name') or 'Unknown'
             status = result.get('status') or 'N/A'
             comparison = result.get('comparison') or {'added': [], 'removed': [], 'changed': []}
 
-            # Xác định tên dự án từ key
             short_project_name = self._get_project_name_from_keys(comparison, project_prefix)
 
-            # Tạo key để nhóm
             group_key = (agent_name, short_project_name)
             if group_key not in grouped_results:
                 grouped_results[group_key] = {
@@ -116,24 +131,22 @@ class ReportGenerator:
                     'changed': []
                 }
 
-            # Kiểm tra trạng thái
             if status != 'Success':
                 grouped_results[group_key]['status'] = 'N/A'
             else:
                 added = comparison.get('added') or []
                 removed = comparison.get('removed') or []
                 changed = comparison.get('changed') or []
-                grouped_results[group_key]['added'].update([str(item) for item in added if item is not None])
-                grouped_results[group_key]['removed'].update([str(item) for item in removed if item is not None])
+                grouped_results[group_key]['added'].update([str(item) for item in added if item and len(item) > 0])
+                grouped_results[group_key]['removed'].update([str(item) for item in removed if item and len(item) > 0])
                 grouped_results[group_key]['changed'].extend([item for item in changed if item is not None])
 
-        # Tạo dữ liệu cho DataFrame
         for (agent_name, short_project_name), info in grouped_results.items():
             added_lines = []
             removed_lines = []
             changed_lines = []
 
-            if info['status'] != 'Success':
+            if info['status'] == 'Failed':
                 added_lines.append("N/A")
                 removed_lines.append("N/A")
                 changed_lines.append("N/A")
@@ -143,12 +156,12 @@ class ReportGenerator:
                 changed = info['changed']
 
                 if added:
-                    added_lines.extend([f"- {key}" for key in sorted(added)])
+                    added_lines.extend([f"{key}" for key in sorted(added)])
                 else:
                     added_lines.append("- No update")
 
                 if removed:
-                    removed_lines.extend([f"- {key}" for key in sorted(removed)])
+                    removed_lines.extend([f"{key}" for key in sorted(removed)])
                 else:
                     removed_lines.append("- No update")
 
@@ -158,11 +171,10 @@ class ReportGenerator:
                         col = change.get('column') or 'Unknown'
                         before = change.get('before', 'Unknown')
                         after = change.get('after', 'Unknown')
-                        changed_lines.append(f"- {key}: {col}: {before} -> {after}")
+                        changed_lines.append(f"{key}: {col}: {before} -> {after}")
                 else:
                     changed_lines.append("- No update")
 
-            # Tạo hàng dữ liệu
             row = {
                 'Đại lý': agent_name,
                 'Dự án': short_project_name,
@@ -179,35 +191,15 @@ class ReportGenerator:
     def _create_json_report(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Tạo dữ liệu báo cáo JSON, gộp dự án theo tên ngắn từ key."""
         project_prefix = self.workflow_config.get('project_prefix', {}) or {}
-        summary_data = {}
         grouped_results = {}
 
-        # Tạo dữ liệu tổng quan
-        for result in results:
-            agent_name = result.get('agent_name') or 'Unknown'
-            project_name = result.get('project_name') or 'Unknown'
-            status = result.get('status') or 'N/A'
-
-            if agent_name not in summary_data:
-                summary_data[agent_name] = {'agent_name': agent_name}
-                for project_name_col in project_prefix.values():
-                    summary_data[agent_name][f"Dự án {project_name_col}"] = 'N/A'
-
-            for prefix, project_name_col in project_prefix.items():
-                if project_name.startswith(prefix):
-                    summary_data[agent_name][f"Dự án {project_name_col}"] = status
-                    break
-
-        # Nhóm dữ liệu chi tiết
         for result in results:
             agent_name = result.get('agent_name') or 'Unknown'
             status = result.get('status') or 'N/A'
             comparison = result.get('comparison') or {'added': [], 'removed': [], 'changed': []}
 
-            # Xác định tên dự án từ key
             short_project_name = self._get_project_name_from_keys(comparison, project_prefix)
 
-            # Tạo key để nhóm
             group_key = (agent_name, short_project_name)
             if group_key not in grouped_results:
                 grouped_results[group_key] = {
@@ -217,18 +209,16 @@ class ReportGenerator:
                     'changed': []
                 }
 
-            # Kiểm tra trạng thái
             if status != 'Success':
                 grouped_results[group_key]['status'] = 'N/A'
             else:
                 added = comparison.get('added') or []
                 removed = comparison.get('removed') or []
                 changed = comparison.get('changed') or []
-                grouped_results[group_key]['added'].update([str(item) for item in added if item is not None])
-                grouped_results[group_key]['removed'].update([str(item) for item in removed if item is not None])
+                grouped_results[group_key]['added'].update([str(item) for item in added if item and len(item) > 0])
+                grouped_results[group_key]['removed'].update([str(item) for item in removed if item and len(item) > 0])
                 grouped_results[group_key]['changed'].extend([item for item in changed if item is not None])
 
-        # Tạo dữ liệu chi tiết
         details_data = []
         for (agent_name, short_project_name), info in grouped_results.items():
             detail_entry = {
@@ -236,53 +226,42 @@ class ReportGenerator:
                 'project_name': short_project_name,
                 'status': info['status']
             }
-            if info['status'] != 'Success':
-                detail_entry.update({
-                    'added': None,
-                    'removed': None,
-                    'changed': None
-                })
-            else:
-                detail_entry.update({
-                    'added': sorted(list(info['added'])),
-                    'removed': sorted(list(info['removed'])),
-                    'changed': info['changed']
-                })
+            detail_entry.update({
+                'added': sorted(list(info['added'])),
+                'removed': sorted(list(info['removed'])),
+                'changed': info['changed']
+            })
             details_data.append(detail_entry)
 
-        return {
-            'summary': list(summary_data.values()),
-            'details': details_data
-        }
+        return {'details': details_data}
 
-    def generate_report(self, results: List[Dict[str, Any]]) -> None:
-        """Tạo báo cáo Excel và JSON."""
+    def generate_report(self) -> str:
+        """Tạo báo cáo Excel chỉ với sheet chi tiết và báo cáo JSON."""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        excel_file = os.path.join(self.report_dir, f"report_{timestamp}.xlsx")
-        json_file = os.path.join(self.report_dir, f"report_{timestamp}.json")
+        excel_file = os.path.join(self.output_dir, f"report_{timestamp}.xlsx")
+        json_file = os.path.join(self.output_dir, f"report_{timestamp}.json")
 
-        # Kiểm tra results không phải None
-        if results is None:
-            results = []
-
-        # Tạo sheet tổng quan
-        # df_summary = self._create_summary_sheet(results)
+        # Chuyển đổi results sang định dạng danh sách
+        converted_results = self._convert_results_format()
 
         # Tạo sheet chi tiết
-        df_detail = self._create_detail_sheet(results)
+        df_detail = self._create_detail_sheet(converted_results)
 
         # Tạo file Excel
-        with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
-            # Ghi sheet tổng quan
-            # df_summary.to_excel(writer, sheet_name='Tổng quan', index=False)
+        try:
+            with pd.ExcelWriter(excel_file, engine='openpyxl') as writer:
+                df_detail.to_excel(writer, sheet_name='Chi tiết', index=False)
 
-            # Ghi sheet chi tiết
-            df_detail.to_excel(writer, sheet_name='Chi tiết', index=False)
+                # Điều chỉnh định dạng
+                workbook = writer.book
+                worksheet = workbook['Chi tiết']
+                
+                # Áp dụng wrap text cho tất cả các ô
+                for row in worksheet.iter_rows():
+                    for cell in row:
+                        cell.alignment = Alignment(wrap_text=True)
 
-            # Điều chỉnh độ rộng cột
-            workbook = writer.book
-            for sheet_name in workbook.sheetnames:
-                worksheet = workbook[sheet_name]
+                # Điều chỉnh độ rộng cột (tối thiểu 30)
                 for col in worksheet.columns:
                     max_length = 0
                     column = col[0].column_letter
@@ -292,67 +271,54 @@ class ReportGenerator:
                                 max_length = max(max_length, len(str(cell.value)))
                         except:
                             pass
-                    adjusted_width = max_length + 2
+                    adjusted_width = max(max_length + 2, 30)
                     worksheet.column_dimensions[column].width = adjusted_width
 
-        logging.info(f"Đã tạo báo cáo Excel tại {excel_file}")
+            logging.info(f"Đã tạo báo cáo Excel tại {excel_file}")
+        except Exception as e:
+            logging.error(f"Lỗi khi tạo báo cáo Excel: {e}")
+            raise
 
         # Tạo và lưu file JSON
-        json_report = self._create_json_report(results)
-        with open(json_file, 'w', encoding='utf-8') as f:
-            json.dump(json_report, f, indent=2, ensure_ascii=False)
-        logging.info(f"Đã tạo báo cáo JSON tại {json_file}")
+        try:
+            json_report = self._create_json_report(converted_results)
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(json_report, f, indent=2, ensure_ascii=False)
+            logging.info(f"Đã tạo báo cáo JSON tại {json_file}")
+        except Exception as e:
+            logging.error(f"Lỗi khi tạo báo cáo JSON: {e}")
+            raise
+
+        return excel_file
 
 if __name__ == "__main__":
-    # Thiết lập logging cơ bản cho ví dụ
-    logging.basicConfig(
-        filename='report_generator.log',
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        encoding='utf-8'
-    )
-
     # Dữ liệu giả lập mô phỏng kết quả từ WorkflowManager
-    example_results = [
-        {
-            'agent_name': 'ATD',
-            'project_name': 'C3_LSB',
-            'status': 'Success',
-            'comparison': {
-                'added': ['C3_Product_001'],
-                'removed': [],
-                'changed': [
-                    {'key': 'C3_Product_002', 'column': 'Quantity', 'before': 100, 'after': 150}
-                ]
+    example_results = {
+        "ATD": {
+            "C3_LSB": {
+                "added": [["C3_Product_001", "Tòa A", "Mới"]],
+                "removed": [],
+                "changed": [
+                    {"key": "C3_Product_002", "changes": {"Quantity": {"old": 100, "new": 150}}}
+                ],
+                "remaining": [["C3_Product_003", "Tòa B", "Cũ"]]
+            },
+            "C7_LSB": {
+                "added": [["C3_Product_004", "Tòa C", "Mới"]],
+                "removed": [["C3_Product_005", "Tòa D", "Cũ"]],
+                "changed": [],
+                "remaining": []
             }
         },
-        {
-            'agent_name': 'ATD',
-            'project_name': 'C7_LSB',
-            'status': 'Success',
-            'comparison': {
-                'added': ['C3_Product_003'],
-                'removed': ['C3_Product_004'],
-                'changed': []
+        "XYZ": {
+            "C5_MLS": {
+                "added": [],
+                "removed": [],
+                "changed": [],
+                "remaining": []
             }
-        },
-        {
-            'agent_name': 'ATD',
-            'project_name': 'C4_MGA',
-            'status': 'Success',
-            'comparison': {
-                'added': ['C4_Product_005'],
-                'removed': [],
-                'changed': []
-            }
-        },
-        {
-            'agent_name': 'XYZ',
-            'project_name': 'C5_MLS',
-            'status': 'Failed',
-            'comparison': None
         }
-    ]
+    }
 
     # Giả lập workflow_config.json
     example_config = {
@@ -366,5 +332,5 @@ if __name__ == "__main__":
         json.dump(example_config, f, indent=2)
 
     # Khởi tạo và chạy ReportGenerator
-    report_generator = ReportGenerator(workflow_config_file='workflow_config.json')
-    report_generator.generate_report(example_results)
+    report_generator = ReportGenerator(results=example_results, workflow_config_file='workflow_config.json')
+    report_generator.generate_report()

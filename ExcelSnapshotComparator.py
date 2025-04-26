@@ -1,209 +1,252 @@
-import numpy as np
 import pandas as pd
-import re
-from typing import List, Dict, Any, Tuple
+import numpy as np
+import os
 import logging
+import json
+import re
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
+from typing import Dict, List, Optional, Tuple
+
+# Cấu hình logging
+logging.basicConfig(
+    filename='runtime.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    encoding='utf-8'
+)
 
 class ExcelSnapshotComparator:
-    """Class để so sánh hai snapshot Excel, kiểm tra thay đổi dựa trên cột key."""
+    """So sánh hai file snapshot Excel và kiểm tra màu nền hợp lệ."""
 
-    def __init__(self, file_predecessor: str, file_current: str, key_col: str, check_cols: List[str], allowed_key_pattern: str = r'^[A-Z0-9._-]+$'):
+    def __init__(
+        self,
+        file_predecessor: str,
+        file_current: str,
+        key_col: str,
+        check_cols: List[str],
+        allowed_key_pattern: str = r'^[A-Z0-9_.-]+$',
+        valid_colors: list[str] = ['#ffffff']
+    ):
         """
-        Khởi tạo với thông tin file và cột.
+        Khởi tạo với các file snapshot và cấu hình.
 
         Args:
-            file_predecessor: Đường dẫn đến file Excel trước.
-            file_current: Đường dẫn đến file Excel hiện tại.
-            key_col: Ký hiệu cột làm key (ví dụ: 'A', 'AA').
-            check_cols: Danh sách ký hiệu cột cần kiểm tra (ví dụ: ['B', 'C']).
-            allowed_key_pattern: Regex cho key hợp lệ.
+            file_predecessor: Đường dẫn đến file predecessor Excel.
+            file_current: Đường dẫn đến file current Excel.
+            key_col: Tên cột khóa để so sánh (e.g., 'MÃ CĂN').
+            check_cols: Danh sách các cột cần kiểm tra thay đổi.
+            allowed_key_pattern: Regex pattern để kiểm tra giá trị khóa hợp lệ.
+            valid_colors: Danh sach các mã màu hex hợp lệ (chuẩn hóa thành chữ thường).
         """
         self.file_predecessor = file_predecessor
         self.file_current = file_current
-        self.key_col = self.excel_col_to_index(key_col)
-        self.check_cols = [self.excel_col_to_index(col) for col in check_cols]
+        self.key_col = key_col
+        self.check_cols = check_cols
         self.allowed_key_pattern = allowed_key_pattern
+        self.valid_colors = valid_colors
 
-    @staticmethod
-    def excel_col_to_index(col: str) -> int:
-        """Chuyển ký hiệu cột Excel thành chỉ số 0-based."""
-        if not col or not col.isalpha():
-            raise ValueError(f"Ký hiệu cột '{col}' không hợp lệ. Phải là chữ cái (A, B, AA, ...).")
-        col = col.upper()
-        index = 0
-        for char in col:
-            index = index * 26 + (ord(char) - ord('A') + 1)
-        return index - 1
-
-    def read_excel_file(self, file_path: str) -> pd.DataFrame:
-        """Đọc file Excel, trả về DataFrame."""
-        try:
-            if file_path.endswith(".csv"):
-                df = pd.read_csv(file_path, header=None)
-            else:
-                df = pd.read_excel(file_path, header=None)
-            if df.empty:
-                raise Exception(f"File {file_path} rỗng.")
-            return df
-        except Exception as e:
-            logging.error(f"Lỗi khi đọc file {file_path}: {e}")
-            return pd.DataFrame()
-
-    def validate_keys(self, df: pd.DataFrame, file_name: str) -> pd.DataFrame:
-        """Lọc các key hợp lệ dựa trên regex."""
-        try:
-            if df.empty or self.key_col < 0 or self.key_col >= df.shape[1]:
-                logging.warning(f"Cột key không tồn tại hoặc file rỗng trong {file_name}.")
-                return pd.DataFrame()
-
-            df['key'] = df[self.key_col].astype(str)
-            valid_mask = (
-                df['key'].str.match(self.allowed_key_pattern) &
-                (df['key'] != '') &
-                (df['key'] != 'nan') &
-                (df['key'].str.len() >= 6) &
-                (df['key'].str.len() <= 15) &
-                df['key'].notna()
-            )
-
-            invalid_keys = df[~valid_mask]['key'].dropna().tolist()
-            if invalid_keys:
-                logging.info(f"Đã bỏ qua các key không hợp lệ trong {file_name}: {invalid_keys}")
-
-            return df[valid_mask].copy()
-        except Exception as e:
-            logging.error(f"Lỗi khi lọc key trong {file_name}: {e}")
-            return pd.DataFrame()
-
-    def compare_snapshots(self, df_predecessor: pd.DataFrame, df_current: pd.DataFrame) -> Dict[str, Any]:
-        """
-        So sánh hai snapshot dựa trên cột key và các cột kiểm tra.
+    def read_excel_data_and_colors(self, file_path: str) -> Tuple[pd.DataFrame, List[List[Optional[str]]]]:
+        """Đọc dữ liệu và màu nền từ file Excel.
 
         Args:
-            df_predecessor: DataFrame của snapshot cũ.
-            df_current: DataFrame của snapshot hiện tại.
+            file_path: Đường dẫn đến file Excel.
 
         Returns:
-            Dictionary chứa added, removed, changed.
+            Tuple chứa DataFrame dữ liệu và danh sách màu nền (hex).
+
+        Raises:
+            Exception: Nếu lỗi khi đọc file.
         """
         try:
-            if df_predecessor.empty or df_current.empty:
-                logging.warning("Một hoặc cả hai DataFrame rỗng.")
-                return {'added': [], 'removed': [], 'changed': []}
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"File {file_path} không tồn tại.")
+            
+            # Đọc dữ liệu
+            df = pd.read_excel(file_path, header=None, engine='openpyxl')
+            if df.empty:
+                logging.warning(f"File {file_path} rỗng.")
+                return df, []
 
-            if not self.check_cols or any(c < 0 or c >= df_predecessor.shape[1] or c >= df_current.shape[1] for c in self.check_cols):
-                logging.warning("Cột kiểm tra không hợp lệ.")
-                return {'added': [], 'removed': [], 'changed': []}
+            # Đọc màu nền
+            wb = load_workbook(file_path, read_only=True)
+            ws = wb.active
+            color_grid = []
+            for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+                row_colors = []
+                for cell in row:
+                    fill = cell.fill
+                    color = None
+                    if isinstance(fill, PatternFill) and fill.start_color and fill.start_color.rgb:
+                        color = f"#{fill.start_color.rgb[2:].lower()}"  # Loại bỏ 'FF' prefix
+                    row_colors.append(color)
+                color_grid.append(row_colors)
+            
+            wb.close()
+            return df, color_grid
+        except Exception as e:
+            logging.error(f"Lỗi khi đọc file Excel {file_path}: {e}")
+            return pd.DataFrame(), []
 
-            keys_predecessor = set(df_predecessor['key'])
-            keys_current = set(df_current['key'])
+    def normalize_key(self, key: str) -> str:
+        """Chuẩn hóa giá trị khóa: giữ chữ cái tiếng Việt, số, dấu chấm, gạch dưới, gạch ngang; loại bỏ ký tự khác.
 
-            # Sử dụng key gốc (đã chứa prefix như C3_)
-            new_keys = list(keys_current - keys_predecessor)
-            missing_keys = list(keys_predecessor - keys_current)
-            common_keys = keys_predecessor.intersection(keys_current)
+        Args:
+            key: Giá trị khóa cần chuẩn hóa.
 
-            changes = []
-            for key in common_keys:
-                row_predecessor = df_predecessor[df_predecessor['key'] == key].iloc[0]
-                row_current = df_current[df_current['key'] == key].iloc[0]
+        Returns:
+            Giá trị khóa đã chuẩn hóa.
+        """
+        if not isinstance(key, str):
+            return ''
+        # Regex giữ chữ cái tiếng Việt (bao gồm dấu), số, dấu chấm, gạch dưới, gạch ngang
+        pattern = r'[A-Za-z0-9._-]+'
+        normalized = ''.join(re.findall(pattern, key))
+        # Loại bỏ khoảng trắng thừa
+        normalized = re.sub(r'\s+', '', normalized)
+        return normalized
 
-                for col in self.check_cols:
-                    old_value = row_predecessor.get(col, None)
-                    new_value = row_current.get(col, None)
-                    if pd.isna(old_value) and pd.isna(new_value):
+    def compare(self) -> Dict[str, List]:
+        """So sánh hai file snapshot và trả về các thay đổi, kiểm tra màu hợp lệ.
+
+        Returns:
+            Dictionary chứa danh sách các hàng thêm, xóa và thay đổi.
+        """
+        try:
+            # Đọc file predecessor và current
+            pred_df, pred_colors = self.read_excel_data_and_colors(self.file_predecessor)
+            curr_df, curr_colors = self.read_excel_data_and_colors(self.file_current)
+
+            if pred_df.empty or curr_df.empty:
+                logging.warning(f"File rỗng: {self.file_predecessor} hoặc {self.file_current}")
+                return {'added': [], 'removed': [], 'changed': [], 'remaining': []}
+
+            # Tìm index của key_col và check_cols
+            header = pred_df.iloc[0].tolist()
+            key_col_idx = header.index(self.key_col) if self.key_col in header else None
+            if key_col_idx is None:
+                logging.error(f"Không tìm thấy cột {self.key_col} trong {self.file_predecessor}")
+                return {'added': [], 'removed': [], 'changed': [], 'remaining': []}
+
+            check_col_indices = []
+            for col in self.check_cols:
+                if col in header:
+                    check_col_indices.append(header.index(col))
+                else:
+                    logging.warning(f"Cột {col} không tồn tại trong {self.file_predecessor}")
+
+            # Khởi tạo kết quả
+            added = []
+            removed = []
+            changed = []
+            remaining = []
+            invalid_rows = []
+
+            # Cột màu cho TÊN TÒA (cột 1 sau khi bỏ cột đầu tiên)
+            color_col_idx = key_col_idx
+
+            # Kiểm tra khóa hợp lệ
+            key_pattern = re.compile(self.allowed_key_pattern)
+
+            # Tìm các hàng bị xóa hoặc có màu thay đổi từ hợp lệ sang không hợp lệ
+            for idx, row in pred_df.iterrows():
+                key = self.normalize_key(row[key_col_idx])
+                if (not key) or (len(key) >= 15) or (len(key) < 6) or not key_pattern.match(key):
+                    logging.info(f"Bỏ qua hàng với khóa không hợp lệ: {key}")
+                    continue
+
+                curr_row_idx = curr_df[curr_df.iloc[:, key_col_idx].apply(self.normalize_key) == key].index
+                if curr_row_idx.empty:
+                    # Hàng không tồn tại trong file hiện tại
+                    try:
+                        cell_color = pred_colors[idx][color_col_idx]
+                        if cell_color and cell_color.lower() not in self.valid_colors:
+                            logging.info(f"Bỏ qua hàng với MÃ CĂN {key}: Màu {cell_color} không hợp lệ")
+                            invalid_rows.append((key, cell_color))
+                            continue
+                        removed.append(key)
+                    except IndexError:
+                        logging.warning(f"Không tìm thấy màu cho hàng {idx+1}, cột {color_col_idx}")
                         continue
-                    if old_value != new_value:
-                        changes.append({
-                            'key': key,
-                            'column': self.index_to_excel_col(col),
-                            'before': old_value if pd.notnull(old_value) else 'Unknown',
-                            'after': new_value if pd.notnull(new_value) else 'Unknown'
-                        })
+                else:
+                    # Hàng tồn tại trong file hiện tại, kiểm tra màu
+                    curr_row_idx = curr_row_idx[0]
+                    try:
+                        pred_cell_color = pred_colors[idx][color_col_idx]
+                        curr_cell_color = curr_colors[curr_row_idx][color_col_idx]
+                        if (pred_cell_color and pred_cell_color.lower() in self.valid_colors and
+                            curr_cell_color and curr_cell_color.lower() not in self.valid_colors):
+                            logging.info(f"Thêm vào removed: MÃ CĂN {key} vì màu thay đổi từ hợp lệ {pred_cell_color} sang không hợp lệ {curr_cell_color}")
+                            removed.append(key)
+                            invalid_rows.append((key, curr_cell_color))
+                            continue
+                    except IndexError:
+                        logging.warning(f"Không tìm thấy màu cho hàng {idx+1} hoặc {curr_row_idx+1}, cột {color_col_idx}")
+                        continue
+
+            # Tìm các hàng được thêm hoặc còn lại
+            for idx, row in curr_df.iterrows():
+                key = self.normalize_key(row[key_col_idx])
+                if (not key) or (len(key) >= 15) or (len(key) < 6) or not key_pattern.match(key):
+                    logging.info(f"Bỏ qua hàng với khóa không hợp lệ: {key}")
+                    continue
+
+                try:
+                    cell_color = curr_colors[idx][color_col_idx]
+                    if cell_color and cell_color.lower() not in self.valid_colors:
+                        logging.info(f"Bỏ qua hàng với MÃ CĂN {key}: Màu {cell_color} không hợp lệ")
+                        invalid_rows.append((key, cell_color))
+                        continue
+                except IndexError:
+                    logging.warning(f"Không tìm thấy màu cho hàng {idx+1}, cột {color_col_idx}")
+                    continue
+
+                if key not in pred_df.iloc[:, key_col_idx].apply(self.normalize_key).values:
+                    # Hàng mới, thêm vào added
+                    added.append(key)
+                else:
+                    # Hàng còn lại, thêm vào remaining nếu màu hợp lệ
+                    remaining.append(key)
+
+            # Tìm các hàng thay đổi
+            for idx, pred_row in pred_df.iterrows():
+                key = self.normalize_key(pred_row[key_col_idx])
+                if not key or not key_pattern.match(key):
+                    continue
+
+                curr_row = curr_df[curr_df.iloc[:, key_col_idx].apply(self.normalize_key) == key]
+                if not curr_row.empty:
+                    curr_row = curr_row.iloc[0]
+                    changes = {}
+                    for col_idx in check_col_indices:
+                        pred_val = pred_row[col_idx]
+                        curr_val = curr_row[col_idx]
+                        if pd.isna(pred_val) and pd.isna(curr_val):
+                            continue
+                        if pred_val != curr_val:
+                            col_name = header[col_idx]
+                            changes[col_name] = {'old': pred_val, 'new': curr_val}
+                    if changes:
+                        try:
+                            cell_color = curr_colors[idx][color_col_idx]
+                            if cell_color and cell_color.lower() not in self.valid_colors:
+                                logging.info(f"Bỏ qua hàng với MÃ CĂN {key}: Màu {cell_color} không hợp lệ")
+                                invalid_rows.append((key, cell_color))
+                                continue
+                        except IndexError:
+                            logging.warning(f"Không tìm thấy màu cho hàng {idx+1}, cột {color_col_idx}")
+                            continue
+                        changed.append({'key': key, 'changes': changes})
+
+            if invalid_rows:
+                logging.info(f"Các hàng bị bỏ qua do màu không hợp lệ: {invalid_rows}")
 
             return {
-                'added': new_keys,
-                'removed': missing_keys,
-                'changed': changes,
-                'remaining': keys_current
+                'added': added,
+                'removed': removed,
+                'changed': changed,
+                'remaining': remaining
             }
         except Exception as e:
-            logging.error(f"Lỗi khi so sánh snapshot: {e}")
-            return {'added': [], 'removed': [], 'changed': []}
-
-    @staticmethod
-    def index_to_excel_col(index: int) -> str:
-        """Chuyển chỉ số cột thành ký hiệu Excel."""
-        if index < 0:
-            raise ValueError("Chỉ số cột không hợp lệ.")
-        col = ''
-        while index >= 0:
-            col = chr(65 + (index % 26)) + col
-            index = index // 26 - 1
-        return col
-
-    def print_comparison_results(self, changes: List[Dict[str, Any]], new_keys: List[Any], missing_keys: List[Any]) -> None:
-        """In kết quả so sánh."""
-        print("\n=== Kết quả so sánh ===")
-        if changes:
-            print("\nCác thay đổi trong dữ liệu:")
-            for change in changes:
-                print(f"Key: {change['key']}, Cột: {change['column']}, "
-                      f"Giá trị cũ: {change['before']}, Giá trị mới: {change['after']}")
-        else:
-            print("\nKhông có thay đổi trong các cột kiểm tra.")
-        if new_keys:
-            print("\nKey mới (chỉ có trong snapshot hiện tại):")
-            for key in new_keys:
-                print(f"- {key}")
-        else:
-            print("\nKhông có key mới.")
-        if missing_keys:
-            print("\nKey bị mất (chỉ có trong snapshot trước):")
-            for key in missing_keys:
-                print(f"- {key}")
-        else:
-            print("\nKhông có key bị mất.")
-        print("\n=======================")
-
-    def compare(self, project_name: str = 'Unknown') -> Dict[str, Any]:
-        """
-        Hàm chính: So sánh hai snapshot và trả về kết quả.
-
-        Args:
-            project_name: Tên dự án (dùng để tương thích, không ảnh hưởng logic).
-
-        Returns:
-            Dictionary chứa added, removed, changed.
-        """
-        try:
-            df_predecessor = self.read_excel_file(self.file_predecessor)
-            df_current = self.read_excel_file(self.file_current)
-            df_predecessor = self.validate_keys(df_predecessor, self.file_predecessor)
-            df_current = self.validate_keys(df_current, self.file_current)
-
-            if df_predecessor.empty or df_current.empty:
-                logging.warning("Một hoặc cả hai file không có key hợp lệ để so sánh.")
-                self.print_comparison_results([], [], [])
-                return {'added': [], 'removed': [], 'changed': []}
-
-            result = self.compare_snapshots(df_predecessor, df_current)
-            self.print_comparison_results(result['changed'], result['added'], result['removed'])
-            return result
-        except Exception as e:
-            logging.error(f"Lỗi khi so sánh: {e}")
-            self.print_comparison_results([], [], [])
-            return {'added': [], 'removed': [], 'changed': []}
-
-# Chạy ví dụ
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    comparator = ExcelSnapshotComparator(
-        file_predecessor='./predecessor/NewstarLand_MLS.csv',
-        file_current='./current/NewstarLand_MLS.csv',
-        key_col='B',
-        check_cols=['F'],
-        allowed_key_pattern='^[A-Za-z0-9_.-]+$'
-    )
-    result = comparator.compare(project_name='C3_LSB')
-    print(result)
+            logging.error(f"Lỗi khi so sánh {self.file_predecessor} và {self.file_current}: {e}")
+            return {'added': [], 'removed': [], 'changed': [], 'remaining': []}

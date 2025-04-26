@@ -4,6 +4,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1eqGTrCjn4hKK1RfmL521IorH5Rc2X1j38zEnfbSa1dA",
             "gid": "34236590",
+            "valid_colors": ["#ffc000", "#ffff00"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -22,6 +23,7 @@
             "project_name": "MTS_Cx",
             "spreadsheet_id": "1eqGTrCjn4hKK1RfmL521IorH5Rc2X1j38zEnfbSa1dA",
             "gid": "1124809750",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "G"
@@ -33,6 +35,7 @@
             "project_name": "LSB1",
             "spreadsheet_id": "1rB8kSvVVJmH_sTWfVM0cxSP8Q8WSNLFg",
             "gid": "1453345957",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -42,6 +45,7 @@
             "project_name": "LSB2",
             "spreadsheet_id": "1rB8kSvVVJmH_sTWfVM0cxSP8Q8WSNLFg",
             "gid": "1248261107",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -51,6 +55,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1CPYpxWIuavdZtzFmwvxy1xLhziJYTQY2gdGraPgtarw",
             "gid": "1850200579",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "H"
@@ -60,6 +65,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1y2cMqmlBz-1kWuOhECAq5-zvZbGXRNkV",
             "gid": "711610628",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "H"
@@ -69,6 +75,7 @@
             "project_name": "MTS_Sx",
             "spreadsheet_id": "1FCXG7CFjFHul4t8l9lnVzrOdgIs70aVg",
             "gid": "1248261107",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -78,6 +85,7 @@
             "project_name": "MTS_Cx",
             "spreadsheet_id": "1FCXG7CFjFHul4t8l9lnVzrOdgIs70aVg",
             "gid": "977341538",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -89,6 +97,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1fU-U4_-jqXPd871c4yLPImjajnZ7Q3N_",
             "gid": "693675002",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -98,6 +107,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1EAOOPCR_YKGJf1LnxTCt2HQlGcCyLZwJ",
             "gid": "1150658853",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "H"
@@ -107,6 +117,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1fU-U4_-jqXPd871c4yLPImjajnZ7Q3N_",
             "gid": "1985337590",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "J"
@@ -116,6 +127,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1fU-U4_-jqXPd871c4yLPImjajnZ7Q3N_",
             "gid": "1450826906",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "J"
@@ -127,6 +139,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1BF6AOOycORcieRlXHyTArioAUgzWmRhs",
             "gid": "1459929022",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "H"
@@ -136,6 +149,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1ZP9CSv7yjrQejXewX7UMgSsZvsjZq6iu",
             "gid": "1459929022",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -145,6 +159,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1fRvSwYoapZBElV6zz-MYgjyYoM7DTtXg",
             "gid": "1459929022",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -154,6 +169,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1V5M7BhtKE4fXkxFxjUxG9zuCHDdLqMV6",
             "gid": "1459929022",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -165,6 +181,7 @@
             "project_name": "LSB_MGA_MLS_MTS",
             "spreadsheet_id": "1X8QiskRQwiv6Ho8izxWj0Sg9UWWCMW90",
             "gid": "568881025",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -176,6 +193,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1EWqj6OcktUga3PRvWizkPkVeO8v61RGPMiyIpKoSJbY",
             "gid": "1437277026",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -185,6 +203,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1wxSFdMeIwHcijdeqOj0oFQcFGqi_8RFT",
             "gid": "723417714",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "D"
@@ -194,6 +213,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1-2uZ4UDeou3J2naflLBf_qWhx3gBM0v4",
             "gid": "1584540314",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -203,6 +223,7 @@
             "project_name": "MTS_Sx",
             "spreadsheet_id": "1-RhEOmibM-tfITHotDi1hevZ17PebVL-",
             "gid": "1026654160",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -212,6 +233,7 @@
             "project_name": "MTS_Cx",
             "spreadsheet_id": "1-RhEOmibM-tfITHotDi1hevZ17PebVL-",
             "gid": "647431008",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -223,6 +245,7 @@
             "project_name": "LSB",
             "html_url": "https://partner.futurehomes.vn/",
             "gid": "SpringBay",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "A",
             "check_columns": [
                 "I"
@@ -232,6 +255,7 @@
             "project_name": "MLS",
             "html_url": "https://partner.futurehomes.vn/",
             "gid": "LakeSide",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "A",
             "check_columns": [
                 "I"
@@ -241,6 +265,7 @@
             "project_name": "MTS",
             "html_url": "https://partner.futurehomes.vn/",
             "gid": "TrinitySquare",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "A",
             "check_columns": [
                 "I"
@@ -252,6 +277,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1JcPb_YG_84qXsxk0rR9OqpjY4bnlDmI_",
             "gid": "1039182214",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -261,6 +287,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1DDIp2nSdB_5o_3W4wBuUbFnao37AdHYaLXwLnEEA-mw",
             "gid": "1356571437",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "D",
             "check_columns": [
                 "G"
@@ -270,6 +297,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1JcPb_YG_84qXsxk0rR9OqpjY4bnlDmI_",
             "gid": "363069565",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -279,6 +307,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1JcPb_YG_84qXsxk0rR9OqpjY4bnlDmI_",
             "gid": "513597336",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "H"
@@ -290,6 +319,7 @@
             "project_name": "LSB_L1",
             "spreadsheet_id": "1TXD896ioYi6UphKawSt6E9EpWbIA7dPs",
             "gid": "753219129",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -299,6 +329,7 @@
             "project_name": "LSB_L2",
             "spreadsheet_id": "1TXD896ioYi6UphKawSt6E9EpWbIA7dPs",
             "gid": "910778960",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -308,6 +339,7 @@
             "project_name": "LSB_Z1",
             "spreadsheet_id": "1TXD896ioYi6UphKawSt6E9EpWbIA7dPs",
             "gid": "447911578",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -317,6 +349,7 @@
             "project_name": "LSB_Z2",
             "spreadsheet_id": "1TXD896ioYi6UphKawSt6E9EpWbIA7dPs",
             "gid": "1339757277",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -326,6 +359,7 @@
             "project_name": "MGA_S1",
             "spreadsheet_id": "16AExaDU3MJ-m8T3isOt40SIJzSBTWd3WjC-sxO7g6ik",
             "gid": "1132405749",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "E"
@@ -335,6 +369,7 @@
             "project_name": "MGA_S2",
             "spreadsheet_id": "16AExaDU3MJ-m8T3isOt40SIJzSBTWd3WjC-sxO7g6ik",
             "gid": "720631963",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "E"
@@ -344,6 +379,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1g8E8kXVeE2DZbpn3ENxV2OanGawl-VW1",
             "gid": "501459391",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "F"
@@ -355,6 +391,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1cif4uMP4CI0WlZnVGf0BTS4SC5KJfFo5dGcogbeC5iM",
             "gid": "1034414192",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "J"
@@ -364,6 +401,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1cif4uMP4CI0WlZnVGf0BTS4SC5KJfFo5dGcogbeC5iM",
             "gid": "502705280",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -373,6 +411,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1cif4uMP4CI0WlZnVGf0BTS4SC5KJfFo5dGcogbeC5iM",
             "gid": "660281583",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -382,6 +421,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1cif4uMP4CI0WlZnVGf0BTS4SC5KJfFo5dGcogbeC5iM",
             "gid": "2097381176",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "G"
@@ -393,6 +433,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "11yGMSvuiesLJSqGfz9xdv1pBb8bG8ZZV1hYuUt3_P2s",
             "gid": "247328727",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "H"
@@ -402,6 +443,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1n144YdREKAVGZLg449XohvNngSEf1VtN",
             "gid": "1142034735",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -411,6 +453,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1u1gc9jie8vO7sw3e6FWkLnowLVJaza8pfvhYViDt2KY",
             "gid": "247328727",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "H"
@@ -420,6 +463,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1ZcXDZBPHFBwlf6OHqkSqzJiyTigyZXB1gJH8y8-Ne8M",
             "gid": "454110223",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "D",
             "check_columns": [
                 "H"
@@ -431,6 +475,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1Ewgh5jDgmKE4FxRvUMP04yrGwPmG7n2U",
             "gid": "1141914157",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "H"
@@ -440,6 +485,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1T1aDS2Os2yFEuxS8SaXunNSnkZn5B3Fc",
             "gid": "1917772182",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "H"
@@ -449,6 +495,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1Ewgh5jDgmKE4FxRvUMP04yrGwPmG7n2U",
             "gid": "88506699",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "J"
@@ -458,6 +505,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1Ewgh5jDgmKE4FxRvUMP04yrGwPmG7n2U",
             "gid": "2011413557",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "H"
@@ -469,6 +517,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1W3eSF4sGT69yAGfVKWusFq63840nvkyKXcQeNGpD5bE",
             "gid": "296350984",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "G"
@@ -478,6 +527,7 @@
             "project_name": "MTS_Sx",
             "spreadsheet_id": "1ETiPs6SRmq7jo28rLNgDSTdy4IpFgTZWBUlpbJYZaWs",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "D",
             "check_columns": [
                 "H"
@@ -487,6 +537,7 @@
             "project_name": "MTS_Cx",
             "spreadsheet_id": "1ETiPs6SRmq7jo28rLNgDSTdy4IpFgTZWBUlpbJYZaWs",
             "gid": "1585243814",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "D",
             "check_columns": [
                 "H"
@@ -498,6 +549,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "11iQzGl_U30HbN1hhO2BQoS151PS21vGC",
             "gid": "1312180377",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "F",
             "check_columns": [
                 "K"
@@ -507,6 +559,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1aczbRRE5DMN4wy_U-t0BsjS_GD1TQ8wY",
             "gid": "1312180377",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "E",
             "check_columns": [
                 "J"
@@ -516,6 +569,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1uMgjRqeK4xzNV_sY2SVF0ntdR83Rgxsy",
             "gid": "1312180377",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "E",
             "check_columns": [
                 "J"
@@ -527,6 +581,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1hWPx0ddQWmr041CreTsCAwDWCoY0gWt5Qp0pnJKhoMk",
             "gid": "2115250163",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "H"
@@ -536,6 +591,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1hWPx0ddQWmr041CreTsCAwDWCoY0gWt5Qp0pnJKhoMk",
             "gid": "455204789",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -545,6 +601,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1hWPx0ddQWmr041CreTsCAwDWCoY0gWt5Qp0pnJKhoMk",
             "gid": "612303569",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "F"
@@ -556,6 +613,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1cqSMtagjJGaITZdtDEcZfsHYsfEBOWsa2BnFtf32-0I",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "F"
@@ -565,6 +623,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1Z4IP-VKoMa6kYwJ6G6Ze6cGaIFpQkecTzEspr6CAc6M",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "F"
@@ -574,6 +633,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1zc4S1zELshpf3kL5OfVZIe2KMo3z9wkrk3zt8Ux3zE4",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "F"
@@ -585,6 +645,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1O_JiM4VD0VlC1X0LmnvX5_eKpLCbzom8",
             "gid": "1453345957",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -594,6 +655,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1dczVS1vLmdRHy6Mm5y6a9aF3Gki6xes5",
             "gid": "1459929022",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "I"
@@ -603,6 +665,7 @@
             "project_name": "MTS_Sx",
             "spreadsheet_id": "1ADNMT-zFlIBs65M8138ridB31OBnwK0QJ6wV9CdSKMY",
             "gid": "1967429360",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -612,6 +675,7 @@
             "project_name": "MTS_Cx",
             "spreadsheet_id": "1ADNMT-zFlIBs65M8138ridB31OBnwK0QJ6wV9CdSKMY",
             "gid": "1426925931",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "G"
@@ -623,6 +687,7 @@
             "project_name": "LSB_MLS_MTS",
             "spreadsheet_id": "1-vlFCEavFrIja83xq6tTHjtg0C5G3NYY",
             "gid": "1637633419",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "G"
@@ -632,6 +697,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1JKkYsClzya-YWH2wN4uU4ZbmzXNbFim4",
             "gid": "783157640",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "I"
@@ -643,6 +709,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1_8KWuwV8M3gSKlRBHJfCoW2uXnz21R13eiC2Po73hho",
             "gid": "516027355",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "H"
@@ -652,6 +719,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1wnn5QnRPelR23yZKGrH0uemNFVfEGpZuEx9lTAoYiDY",
             "gid": "855485885",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -661,6 +729,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1sZE1_9FA7M7VoBvUbVh-d92_6-LPvrRv",
             "gid": "2121753331",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -670,6 +739,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1_8KWuwV8M3gSKlRBHJfCoW2uXnz21R13eiC2Po73hho",
             "gid": "125900467",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "H"
@@ -681,6 +751,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "10eTGqQB5d08LYDSSEgTzrW_jt1Ghhrpc",
             "gid": "1031000538",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "H"
@@ -690,6 +761,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1-r3EqDYHBrX0zWRmbTTKrVTsAiMf355p",
             "gid": "1031000538",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "D",
             "check_columns": [
                 "J"
@@ -701,6 +773,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "1fARuXIXR_ZVUkCDkpsHtb8X6gD3Nv6qXJKiFg7cusDo",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "E"
@@ -710,6 +783,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1fARuXIXR_ZVUkCDkpsHtb8X6gD3Nv6qXJKiFg7cusDo",
             "gid": "110407402",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "E"
@@ -719,6 +793,7 @@
             "project_name": "MLS_Thứ_Cấp",
             "spreadsheet_id": "1fARuXIXR_ZVUkCDkpsHtb8X6gD3Nv6qXJKiFg7cusDo",
             "gid": "1273026934",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "E"
@@ -728,6 +803,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1fARuXIXR_ZVUkCDkpsHtb8X6gD3Nv6qXJKiFg7cusDo",
             "gid": "1832987721",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "E"
@@ -739,6 +815,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1FMatZTVaUCubTbd0UeJyAK2f9ZT6lF9j",
             "gid": "1066640144",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -748,6 +825,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "1Dv3Jc3FvdE2FDfvP5jqmmn_L4v_LhvFEXFVvQ3um4RU",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -757,6 +835,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1ntUNva1sqOgisxB5ISnLCJEn-YHkl-w0Xh43KrJtFZc",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "F"
@@ -768,6 +847,7 @@
             "project_name": "MLS_MTS",
             "spreadsheet_id": "1TXdAH40mUrMK-kPUSNAbQHDjKojquOYiYPwJr-ebQtI",
             "gid": "1078087438",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "I"
@@ -779,6 +859,7 @@
             "project_name": "LSB_MLS",
             "spreadsheet_id": "1qhEMwwLrGfGaGP41qvGcYqGY5glx6_9R",
             "gid": "1621820955",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "B",
             "check_columns": [
                 "J"
@@ -788,6 +869,7 @@
             "project_name": "MTS_Sx",
             "spreadsheet_id": "1yCxJgH43uAkhE4ad1IvAeSNueWHsW6g1IqEeH6Nz7DA",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "G"
@@ -797,6 +879,7 @@
             "project_name": "MTS_Cx",
             "spreadsheet_id": "15sJU6ifgmTpqEppNbCVjBkfbXWwUDNQKDecYuwUPXBU",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "G"
@@ -808,6 +891,7 @@
             "project_name": "LSB",
             "spreadsheet_id": "10HTUNaSALohgKx0WcTzjVoOCN3ECYRYy",
             "gid": "865919913",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "D",
             "check_columns": [
                 "I"
@@ -817,6 +901,7 @@
             "project_name": "MGA",
             "spreadsheet_id": "1I3Jl1x0Wuadl8NyXGXdIiu-z98M0BIwH",
             "gid": "482988153",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "C",
             "check_columns": [
                 "G"
@@ -826,6 +911,7 @@
             "project_name": "MLS",
             "spreadsheet_id": "178yQGG_fGqZZA7z0X8IQYFmSWDTVzcG06Rp6LvSaqfE",
             "gid": "0",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "F",
             "check_columns": [
                 "K"
@@ -835,6 +921,7 @@
             "project_name": "MTS",
             "spreadsheet_id": "1xjEGeigFqcRy0idaODox7jUAuElNNO51",
             "gid": "972079545",
+            "valid_colors": ["#ffc000", "#ffffff"],
             "key_column": "F",
             "check_columns": [
                 "J"
