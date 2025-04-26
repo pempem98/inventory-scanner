@@ -391,7 +391,7 @@
             "spreadsheet_id": "1g8E8kXVeE2DZbpn3ENxV2OanGawl-VW1",
             "gid": "501459391",
             "valid_colors": ["##ffff00", "#ffffff"],
-            "key_column": "B",
+            "key_column": "C",
             "check_columns": [
                 "G"
             ]

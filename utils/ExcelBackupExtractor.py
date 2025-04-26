@@ -40,7 +40,7 @@ class ExcelBackupExtractor:
         try:
             with open(self.project_config_file, 'r', encoding='utf-8') as f:
                 config = json.load(f)
-            if not isinstance(config, list):  # Điều chỉnh cho cấu trúc danh sách
+            if not isinstance(config, dict):  # Điều chỉnh cho cấu trúc danh sách
                 raise ValueError("project_config.json phải là danh sách các agent")
             return config
         except Exception as e:
@@ -145,12 +145,11 @@ class ExcelBackupExtractor:
                 for file in files:
                     backup_files.append(os.path.join(root, file))
 
-        for agent in self.project_config:
-            agent_name = agent.get('agent_name', 'Unknown')
-            for project in agent.get('configs', []):
+        for agent_name, agent_config in self.project_config.items():
+            for project in agent_config:
                 project_name = project.get('project_name', 'Unknown')
-                key_col = project.get('key_column', 'MÃ CĂN')
-                check_cols = project.get('check_columns', ['Quantity'])
+                key_col = project.get('key_column', 'C')
+                check_cols = project.get('check_columns', ['I'])
 
                 for file_path in backup_files:
                     if not os.path.exists(file_path):
@@ -182,12 +181,12 @@ class ExcelBackupExtractor:
         except Exception as e:
             logging.error(f"Lỗi khi lưu kết quả: {e}")
 
-    def print_results(self):
+    def get_str_results(self) -> str:
         """In kết quả ra console."""
-        print("\n=== Kết quả trích xuất ===")
+        stdout = "=== Kết quả trích xuất ===\n"
         for entry in self.results:
-            print(entry)
-            print("-" * 30)
+            stdout += str(entry) + "\n"
+        return stdout
 
 def main():
     # Khởi tạo và chạy extractor
@@ -197,7 +196,9 @@ def main():
     )
 
     extractor.process_backups(folder_path="current")
-    extractor.print_results()
+    result = extractor.get_str_results()
+    with open('stdout.log', 'w', encoding='utf-8') as f:
+        f.write(result)
     extractor.save_results()
 
 if __name__ == "__main__":
