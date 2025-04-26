@@ -218,6 +218,8 @@ class GoogleSheetDownloader:
                 logging.warning("Dữ liệu rỗng sau khi bỏ cột 1.")
                 return None, None
 
+            if not any(data_df.iloc[:1, :]):
+                data_df.iloc[0] = [ chr(ord('A') + i) for i in range(data_df.size[0]) ]
             color_df = pd.DataFrame(colors)
             if color_df.empty:
                 logging.warning("Màu nền rỗng sau khi bỏ hàng 1.")

@@ -13,7 +13,7 @@ class ExcelBackupExtractor:
         Khởi tạo extractor.
 
         Args:
-            project_config_file: File cấu hình chứa key_col, check_cols, backup_files.
+            project_config_file: File cấu hình chứa key_column, check_columns, backup_files.
             workflow_config_file: File chứa allowed_key_pattern (nếu project_config.json không có).
         """
         self.project_config_file = project_config_file
@@ -40,12 +40,12 @@ class ExcelBackupExtractor:
         try:
             with open(self.project_config_file, 'r', encoding='utf-8') as f:
                 config = json.load(f)
-            if not isinstance(config, dict):
-                raise ValueError("project_config.json phải là dictionary")
+            if not isinstance(config, list):  # Điều chỉnh cho cấu trúc danh sách
+                raise ValueError("project_config.json phải là danh sách các agent")
             return config
         except Exception as e:
             logging.error(f"Lỗi khi đọc {self.project_config_file}: {e}")
-            return {"agents": []}
+            return []
 
     def load_allowed_key_pattern(self) -> str:
         """Đọc allowed_key_pattern, ưu tiên project_config.json."""
@@ -66,31 +66,13 @@ class ExcelBackupExtractor:
             logging.error(f"Lỗi khi đọc {self.workflow_config_file}: {e}")
             return r'^[A-Za-z0-9._-]+$'
 
-    def excel_col_to_index(self, col: str) -> int:
-        """Chuyển ký hiệu cột Excel thành chỉ số 0-based."""
-        col = col.upper()
-        index = 0
-        for char in col:
-            index = index * 26 + (ord(char) - ord('A') + 1)
-        return index - 1
-
-    def index_to_excel_col(self, index: int) -> str:
-        """Chuyển chỉ số cột thành ký hiệu Excel."""
-        if index < 0:
-            raise ValueError("Chỉ số cột không hợp lệ.")
-        col = ''
-        while index >= 0:
-            col = chr(65 + (index % 26)) + col
-            index = index // 26 - 1
-        return col
-
     def read_file(self, file_path: str) -> pd.DataFrame:
-        """Đọc file Excel hoặc CSV."""
+        """Đọc file Excel hoặc CSV, sử dụng row đầu tiên làm header."""
         try:
             if file_path.endswith('.csv'):
-                df = pd.read_csv(file_path, header=None)
+                df = pd.read_csv(file_path)
             else:
-                df = pd.read_excel(file_path, header=None)
+                df = pd.read_excel(file_path)
             if df.empty:
                 logging.warning(f"File {file_path} rỗng.")
                 return pd.DataFrame()
@@ -99,14 +81,27 @@ class ExcelBackupExtractor:
             logging.error(f"Lỗi khi đọc file {file_path}: {e}")
             return pd.DataFrame()
 
-    def extract_data(self, df: pd.DataFrame, file_name: str, key_col_idx: int, check_cols_idx: List[int], check_cols: List[str], agent_name: str, project_name: str) -> List[Dict]:
-        """Trích xuất key và check columns từ DataFrame."""
+    def extract_data(self, df: pd.DataFrame, file_name: str, key_col: str, check_cols: List[str], agent_name: str, project_name: str) -> List[Dict]:
+        """Trích xuất key và check columns từ DataFrame dựa trên header."""
         try:
-            if df.empty or key_col_idx < 0 or key_col_idx >= df.shape[1]:
-                logging.warning(f"Cột key không tồn tại trong {file_name}.")
+            if df.empty:
+                logging.warning(f"DataFrame rỗng cho file {file_name}.")
                 return []
 
-            df['key'] = df[key_col_idx].astype(str)
+            # Kiểm tra header
+            headers = df.columns.tolist()
+            if key_col not in headers:
+                logging.warning(f"Cột key '{key_col}' không tồn tại trong {file_name}. Headers: {headers}")
+                return []
+
+            # Kiểm tra check_cols
+            valid_check_cols = [col for col in check_cols if col in headers]
+            missing_cols = [col for col in check_cols if col not in headers]
+            if missing_cols:
+                logging.warning(f"Các cột check không tồn tại trong {file_name}: {missing_cols}")
+
+            # Lọc key hợp lệ
+            df['key'] = df[key_col].astype(str)
             valid_mask = (
                 df['key'].str.match(self.allowed_key_pattern) &
                 (df['key'] != '') &
@@ -130,16 +125,12 @@ class ExcelBackupExtractor:
                     'agent': agent_name,
                     'project': project_name,
                 }
-                key_column = self.index_to_excel_col(key_col_idx)
-                check_key = f'{agent_name}_{project_name}_{key_column}'
-                entry[check_key] = row[key_col_idx]
-                for col_idx, col_name in zip(check_cols_idx, check_cols):
+                check_key = f'{agent_name}_{project_name}_{key_col}'
+                entry[check_key] = row[key_col]
+                for col_name in valid_check_cols:
                     data_key = f'{agent_name}_{project_name}_{col_name}'
-                    if col_idx < df.shape[1]:
-                        value = row[col_idx]
-                        entry[data_key] = 'Unknown' if pd.isna(value) else value
-                    else:
-                        entry[data_key] = 'N/A'
+                    value = row[col_name]
+                    entry[data_key] = 'Unknown' if pd.isna(value) else value
                 data.append(entry)
             return data
         except Exception as e:
@@ -153,14 +144,13 @@ class ExcelBackupExtractor:
             for root, _, files in os.walk(folder_path):
                 for file in files:
                     backup_files.append(os.path.join(root, file))
-        for agent_name, projects in self.project_config.items():
-            for project in projects:
-                project_name = project.get('project_name', 'Unknown')
-                key_col = project.get('key_column', 'C')
-                check_cols = project.get('check_columns', ['I'])
 
-                key_col_idx = self.excel_col_to_index(key_col)
-                check_cols_idx = [self.excel_col_to_index(col) for col in check_cols]
+        for agent in self.project_config:
+            agent_name = agent.get('agent_name', 'Unknown')
+            for project in agent.get('configs', []):
+                project_name = project.get('project_name', 'Unknown')
+                key_col = project.get('key_column', 'MÃ CĂN')
+                check_cols = project.get('check_columns', ['Quantity'])
 
                 for file_path in backup_files:
                     if not os.path.exists(file_path):
@@ -175,8 +165,7 @@ class ExcelBackupExtractor:
                         file_data = self.extract_data(
                             df=df,
                             file_name=os.path.basename(file_path),
-                            key_col_idx=key_col_idx,
-                            check_cols_idx=check_cols_idx,
+                            key_col=key_col,
                             check_cols=check_cols,
                             agent_name=agent_name,
                             project_name=project_name
