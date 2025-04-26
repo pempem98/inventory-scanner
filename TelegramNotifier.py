@@ -1,3 +1,4 @@
+import time
 import os
 import logging
 import requests
@@ -123,6 +124,7 @@ class TelegramNotifier:
                     logging.error(f"Lỗi khi gửi tin nhắn Telegram: {response.text}")
             except Exception as e:
                 logging.error(f"Lỗi khi gửi tin nhắn Telegram: {e}")
+            time.sleep(1)  # Đợi 1 giây giữa các tin nhắn để tránh bị chặn
 
     def notify(self, results: Dict[str, Dict[str, Dict[str, List]]], report_file: str) -> None:
         """Gửi thông báo Telegram với kết quả so sánh và đường dẫn file báo cáo."""
