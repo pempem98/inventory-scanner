@@ -177,7 +177,7 @@ class WorkflowManager:
             key_col=config.key_column,
             check_cols=config.check_columns,
             allowed_key_pattern=self.workflow_config.get('allowed_key_pattern', r'^[A-Za-z0-9_.-]+$'),
-            valid_colors=config.valid_colors,
+            invalid_colors=config.invalid_colors,
         )
         result = comparator.compare()
         logging.info(f"Kết quả so sánh cho {agent_name}/{config.project_name} trong {time.time() - start_time:.2f}s: {result}")

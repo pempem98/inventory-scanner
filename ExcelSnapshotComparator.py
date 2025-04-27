@@ -26,7 +26,7 @@ class ExcelSnapshotComparator:
         key_col: str,
         check_cols: List[str],
         allowed_key_pattern: str = r'^[A-Z0-9_.-]+$',
-        valid_colors: list[str] = ['#ffffff']
+        invalid_colors: list[str] = ['#ff0000']
     ):
         """
         Khởi tạo với các file snapshot và cấu hình.
@@ -37,14 +37,14 @@ class ExcelSnapshotComparator:
             key_col: Tên cột khóa để so sánh (e.g., 'MÃ CĂN').
             check_cols: Danh sách các cột cần kiểm tra thay đổi.
             allowed_key_pattern: Regex pattern để kiểm tra giá trị khóa hợp lệ.
-            valid_colors: Danh sach các mã màu hex hợp lệ (chuẩn hóa thành chữ thường).
+            invalid_colors: Danh sach các mã màu hex không hợp lệ (chuẩn hóa thành chữ thường).
         """
         self.file_predecessor = file_predecessor
         self.file_current = file_current
         self.key_col = key_col
         self.check_cols = check_cols
         self.allowed_key_pattern = allowed_key_pattern
-        self.valid_colors = valid_colors
+        self.invalid_colors = invalid_colors
 
     def read_excel_data_and_colors(self, file_path: str) -> Tuple[pd.DataFrame, List[List[Optional[str]]]]:
         """Đọc dữ liệu và màu nền từ file Excel.
@@ -162,7 +162,7 @@ class ExcelSnapshotComparator:
                     # Hàng không tồn tại trong file hiện tại
                     try:
                         cell_color = pred_colors[idx][color_col_idx]
-                        if cell_color and cell_color.lower() not in self.valid_colors:
+                        if cell_color and cell_color.lower() in self.invalid_colors:
                             logging.info(f"Bỏ qua hàng với MÃ CĂN {key}: Màu {cell_color} không hợp lệ")
                             invalid_rows.append((key, cell_color))
                             continue
@@ -176,8 +176,8 @@ class ExcelSnapshotComparator:
                     try:
                         pred_cell_color = pred_colors[idx][color_col_idx]
                         curr_cell_color = curr_colors[curr_row_idx][color_col_idx]
-                        if (pred_cell_color and pred_cell_color.lower() in self.valid_colors and
-                            curr_cell_color and curr_cell_color.lower() not in self.valid_colors):
+                        if (pred_cell_color and pred_cell_color.lower() not in self.invalid_colors and
+                            curr_cell_color and curr_cell_color.lower() in self.invalid_colors):
                             logging.info(f"Thêm vào removed: MÃ CĂN {key} vì màu thay đổi từ hợp lệ {pred_cell_color} sang không hợp lệ {curr_cell_color}")
                             removed.append(key)
                             invalid_rows.append((key, curr_cell_color))
@@ -195,7 +195,7 @@ class ExcelSnapshotComparator:
 
                 try:
                     cell_color = curr_colors[idx][color_col_idx]
-                    if cell_color and cell_color.lower() not in self.valid_colors:
+                    if cell_color and cell_color.lower() in self.invalid_colors:
                         logging.info(f"Bỏ qua hàng với MÃ CĂN {key}: Màu {cell_color} không hợp lệ")
                         invalid_rows.append((key, cell_color))
                         continue
@@ -231,7 +231,7 @@ class ExcelSnapshotComparator:
                     if changes:
                         try:
                             cell_color = curr_colors[idx][color_col_idx]
-                            if cell_color and cell_color.lower() not in self.valid_colors:
+                            if cell_color and cell_color.lower() in self.invalid_colors:
                                 logging.info(f"Bỏ qua hàng với MÃ CĂN {key}: Màu {cell_color} không hợp lệ")
                                 invalid_rows.append((key, cell_color))
                                 continue
