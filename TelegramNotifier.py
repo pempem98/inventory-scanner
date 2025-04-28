@@ -93,11 +93,11 @@ class TelegramNotifier:
                     message = f"🏢 <b>Đại lý</b>: {agent_name}\n"
                     message += f"📋 <b>Dự án</b>: {short_project_name}\n\n"
                     if added:
-                        message += "➕ <b>Nhập thêm</b>:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in added]) + "</blockquote>\n\n"
+                        message += "➕ <b>Nhập thêm</b>:\n<blockquote>" + "\n".join([f"<b>{key}</b>" for key in added]) + "</blockquote>\n\n"
                     else:
                         message += "➕ <b>Nhập thêm</b>: Không có\n\n"
                     if removed:
-                        message += "✅ <b>Đã bán</b>:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in removed]) + "</blockquote>"
+                        message += "✅ <b>Đã bán</b>:\n<blockquote>" + "\n".join([f"<b>{key}</b>" for key in removed]) + "</blockquote>"
                         if remaining:
                             message += "\n\n📊 <b>Quỹ căn hiện tại</b>:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in remaining]) + "</blockquote>"
                         else:
