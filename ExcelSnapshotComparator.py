@@ -213,7 +213,7 @@ class ExcelSnapshotComparator:
             # Tìm các hàng thay đổi
             for idx, pred_row in pred_df.iterrows():
                 key = self.normalize_key(pred_row[key_col_idx])
-                if not key or not key_pattern.match(key):
+                if (not key) or (len(key) >= 15) or (len(key) < 6) or not key_pattern.match(key):
                     continue
 
                 curr_row = curr_df[curr_df.iloc[:, key_col_idx].apply(self.normalize_key) == key]
