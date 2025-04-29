@@ -58,72 +58,81 @@ class ReportGenerator:
     def _convert_results_format(self) -> List[Dict[str, Any]]:
         """Chuyển đổi results từ dictionary lồng nhau sang danh sách để tương thích với các phương thức hiện tại."""
         converted_results = []
-        project_prefix = self.workflow_config.get('project_prefix', {})
+        prefix_list = self.workflow_config.get('project_prefix', {})
+
+        def get_project_name_from_keys(key: str, prefix_list: Dict[str, str]) -> str:
+            """Lấy tên dự án từ key bằng cách tìm prefix."""
+            for prefix, name in prefix_list.items():
+                if key.startswith(prefix):
+                    return name
+            return 'Unknown'
+
 
         for agent_name, projects in self.results.items():
-            for project_name, comparison in projects.items():
+            realign_results = {}
+            for _, comparison in projects.items():
+                added = comparison.get('added', [])
+                for key in added:
+                    project_name = get_project_name_from_keys(key, prefix_list)
+                    if realign_results.get(project_name) is None:
+                        realign_results[project_name] = {'added': [], 'removed': [], 'changed': [], 'remaining': []}
+                    realign_results[project_name]['added'].append(key)
 
-                formatted_comparison = {
-                    'added': comparison.get('added', []),
-                    'removed': comparison.get('removed', []),
-                    'changed': [
-                        {
-                            'key': change['key'],
-                            'column': col,
-                            'before': values['old'],
-                            'after': values['new']
-                        }
-                        for change in comparison.get('changed', [])
-                        for col, values in change['changes'].items()
-                    ],
-                    'remaining': comparison.get('remaining', [])
-                }
 
+                removed = comparison.get('removed', [])
+                for key in removed:
+                    project_name = get_project_name_from_keys(key, prefix_list)
+                    if realign_results.get(project_name) is None:
+                        realign_results[project_name] = {'added': [], 'removed': [], 'changed': [], 'remaining': []}
+                    realign_results[project_name]['removed'].append(key)
+
+                remaining = comparison.get('remaining', [])
+                for key in remaining:
+                    project_name = get_project_name_from_keys(key, prefix_list)
+                    if realign_results.get(project_name) is None:
+                        realign_results[project_name] = {'added': [], 'removed': [], 'changed': [], 'remaining': []}
+                    realign_results[project_name]['remaining'].append(key)
+
+                changed = comparison.get('changed', [])
+                for change in changed:
+                    project_name = get_project_name_from_keys(change['key'], prefix_list)
+                    if realign_results.get(project_name) is None:
+                        realign_results[project_name] = {'added': [], 'removed': [], 'changed': [], 'remaining': []}
+                    realign_results[project_name]['changed'].extend(
+                        [
+                            {
+                                'key': change['key'],
+                                'column': col,
+                                'before': values['old'],
+                                'after': values['new'],
+                            }
+                            for change in comparison.get('changed', [])
+                            for col, values in change['changes'].items()
+                        ]
+                    )
+
+            for project_name, comparison in realign_results.items():
                 converted_results.append({
                     'agent_name': agent_name,
                     'project_name': project_name,
-                    'comparison': formatted_comparison,
+                    'comparison': comparison,
                     'message': comparison.get('message', ''),
                     'url': comparison.get('url', '').replace('htmlview', 'edit'),
                 })
-
         return converted_results
-
-    def _get_project_name_from_keys(self, comparison: Dict[str, Any], project_prefix: Dict[str, str]) -> str:
-        """Xác định tên dự án ngắn từ prefix trong key của added, removed, changed."""
-        if not comparison:
-            return 'Unknown'
-
-        added = comparison.get('added') or []
-        removed = comparison.get('removed') or []
-        changed = comparison.get('changed') or []
-
-        keys = []
-        keys.extend([str(item) for item in added if item and len(item) > 0])
-        keys.extend([str(item) for item in removed if item and len(item) > 0])
-        keys.extend([str(change.get('key', '')) for change in changed if change and change.get('key') is not None])
-
-        for key in keys:
-            for prefix, name in project_prefix.items():
-                if key.startswith(prefix):
-                    return name
-
-        return 'Unknown'
 
     def _create_detail_sheet(self, results: List[Dict[str, Any]]) -> pd.DataFrame:
         """Tạo DataFrame cho sheet chi tiết với dạng bảng, gộp dự án theo tên ngắn từ key."""
-        project_prefix = self.workflow_config.get('project_prefix', {}) or {}
         data = []
         columns = ['Đại lý', 'Dự án', 'Thêm mới', 'Loại bỏ', 'Thay đổi']
         grouped_results = {}
 
         for result in results:
             agent_name = result.get('agent_name') or 'Unknown'
+            project_name = result.get('project_name') or 'Unknown'
             comparison = result.get('comparison') or {'added': [], 'removed': [], 'changed': []}
 
-            short_project_name = self._get_project_name_from_keys(comparison, project_prefix)
-
-            group_key = (agent_name, short_project_name)
+            group_key = (agent_name, project_name)
             if group_key not in grouped_results:
                 grouped_results[group_key] = {
                     'added': comparison.get('added') or [],  # Danh sách các key mới thêm
@@ -131,7 +140,7 @@ class ReportGenerator:
                     'changed': comparison.get('changed') or []  # Danh sách các thay đổi
                 }
 
-        for (agent_name, short_project_name), info in grouped_results.items():
+        for (agent_name, project_name), info in grouped_results.items():
             added_lines = []
             removed_lines = []
             changed_lines = []
@@ -162,12 +171,12 @@ class ReportGenerator:
 
             row = {
                 'Đại lý': agent_name,
-                'Dự án': short_project_name,
+                'Dự án': project_name,
                 'Thêm mới': "\n".join(added_lines),
                 'Loại bỏ': "\n".join(removed_lines),
                 'Thay đổi': "\n".join(changed_lines)
             }
-            if short_project_name == 'Unknown':
+            if project_name == 'Unknown':
                 continue
             data.append(row)
 
@@ -175,16 +184,14 @@ class ReportGenerator:
 
     def _create_json_report(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Tạo dữ liệu báo cáo JSON, gộp dự án theo tên ngắn từ key."""
-        project_prefix = self.workflow_config.get('project_prefix', {}) or {}
         grouped_results = {}
 
         for result in results:
             agent_name = result.get('agent_name') or 'Unknown'
+            project_name = result.get('project_name') or 'Unknown'
             comparison = result.get('comparison') or {'added': [], 'removed': [], 'changed': []}
 
-            short_project_name = self._get_project_name_from_keys(comparison, project_prefix)
-
-            group_key = (agent_name, short_project_name)
+            group_key = (agent_name, project_name)
             if group_key not in grouped_results:
                 grouped_results[group_key] = {
                     'added': set(),
@@ -200,10 +207,10 @@ class ReportGenerator:
             grouped_results[group_key]['changed'].extend([item for item in changed if item is not None])
 
         details_data = []
-        for (agent_name, short_project_name), info in grouped_results.items():
+        for (agent_name, project_name), info in grouped_results.items():
             detail_entry = {
                 'agent_name': agent_name,
-                'project_name': short_project_name,
+                'project_name': project_name,
             }
             detail_entry.update({
                 'added': sorted(list(info['added'])),
@@ -235,7 +242,7 @@ class ReportGenerator:
                 # Điều chỉnh định dạng
                 workbook = writer.book
                 worksheet = workbook['Chi tiết']
-                
+
                 # Áp dụng wrap text cho tất cả các ô
                 for row in worksheet.iter_rows():
                     for cell in row:

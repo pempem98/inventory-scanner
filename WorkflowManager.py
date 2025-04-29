@@ -227,7 +227,7 @@ class WorkflowManager:
         # Gửi thông báo Telegram
         aligned_results = report_generator.aligned_results
         telegram_config = self.workflow_config.get('telegram', {})
-        if telegram_config.get('bot_token') and telegram_config.get('chat_id'):
+        if telegram_config.get('bot_token') and telegram_config.get('chat_id') and False:
             notifier = TelegramNotifier(
                 workflow_config=self.workflow_config,
             )
