@@ -61,7 +61,7 @@ class ExcelSnapshotComparator:
         try:
             if not os.path.exists(file_path):
                 raise FileNotFoundError(f"File {file_path} không tồn tại.")
-            
+
             # Đọc dữ liệu
             df = pd.read_excel(file_path, header=None, engine='openpyxl')
             if df.empty:
@@ -81,7 +81,7 @@ class ExcelSnapshotComparator:
                         color = f"#{fill.start_color.rgb[2:].lower()}"  # Loại bỏ 'FF' prefix
                     row_colors.append(color)
                 color_grid.append(row_colors)
-            
+
             wb.close()
             return df, color_grid
         except Exception as e:
@@ -123,7 +123,7 @@ class ExcelSnapshotComparator:
 
             # Tìm index của key_col và check_cols
             header = pred_df.iloc[0].tolist()
-            if not any(np.nan == cell for cell in header):
+            if all(str(cell) == 'nan' for cell in header):
                 header = [ chr(ord('A') + i) for i in range(len(header)) ]
             key_col_idx = header.index(self.key_col) if self.key_col in header else None
             if key_col_idx is None:
