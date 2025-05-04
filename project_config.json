@@ -95,16 +95,6 @@
     ],
     "Đất Việt": [
         {
-            "project_name": "LSB",
-            "spreadsheet_id": "1fU-U4_-jqXPd871c4yLPImjajnZ7Q3N_",
-            "gid": "693675002",
-            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "C",
-            "check_columns": [
-                "J"
-            ]
-        },
-        {
             "project_name": "MGA",
             "spreadsheet_id": "1EAOOPCR_YKGJf1LnxTCt2HQlGcCyLZwJ",
             "gid": "1150658853",
@@ -115,7 +105,7 @@
             ]
         },
         {
-            "project_name": "MLS",
+            "project_name": "MLS_LSB",
             "spreadsheet_id": "1fU-U4_-jqXPd871c4yLPImjajnZ7Q3N_",
             "gid": "1985337590",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
@@ -966,6 +956,38 @@
             "key_column": "F",
             "check_columns": [
                 "J"
+            ]
+        }
+    ],
+    "Phú Gia Land": [
+        {
+            "project_name": "LSB",
+            "spreadsheet_id": "1E6wvyKrRy0OhzaxYTiMjQsoOic_LygjK",
+            "gid": "610743934",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "C",
+            "check_columns": [
+                "J"
+            ]
+        },
+        {
+            "project_name": "MLS",
+            "spreadsheet_id": "1E6wvyKrRy0OhzaxYTiMjQsoOic_LygjK",
+            "gid": "2121622767",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "H",
+            "check_columns": [
+                "M"
+            ]
+        },
+        {
+            "project_name": "MTS",
+            "spreadsheet_id": "1E6wvyKrRy0OhzaxYTiMjQsoOic_LygjK",
+            "gid": "1560956488",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "C",
+            "check_columns": [
+                "I"
             ]
         }
     ]
