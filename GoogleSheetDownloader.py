@@ -100,6 +100,7 @@ class GoogleSheetDownloader:
             css_colors[f's{class_id}'] = color
 
         logging.info(f"Đã trích xuất {len(css_colors)} màu nền từ CSS")
+        logging.info(f"Danh sách màu nền:\n{css_colors}")
         return css_colors
 
     def parse_html_to_data(self, html_content: str) -> Tuple[List[List[str]], List[List[str]]]:
@@ -257,7 +258,7 @@ class GoogleSheetDownloader:
         try:
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
             output_file = output_file if output_file.endswith('.xlsx') else f"{output_file}.xlsx"
-            
+
             wb = Workbook()
             ws = wb.active
 
