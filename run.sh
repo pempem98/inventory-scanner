@@ -41,11 +41,11 @@ else
   exit 1
 fi
 
-# Tác vụ 3: Xóa log và file backup cũ hơn 7 ngày
-echo "Removing logs and backup files older than 7 days..."
-find ./reports -name "runtime_*.log" -mtime +7 -delete && \
-find ./extracted_data -name "stdout_*.log" -mtime +7 -delete && \
-find ./backup -type f -path "./backup/backup_*/*" -mtime +7 -delete
+# Tác vụ 3: Xóa log và file backup cũ hơn 30 ngày
+echo "Removing logs and backup files older than 30 days..."
+find ./reports -name "runtime_*.log" -mtime +30 -delete && \
+find ./extracted_data -name "stdout_*.log" -mtime +30 -delete && \
+find ./backup -type f -path "./backup/backup_*/*" -mtime +30 -delete
 if [ $? -eq 0 ]; then
   echo "Old logs and backup files removed successfully"
 else
