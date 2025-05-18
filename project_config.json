@@ -519,9 +519,9 @@
             "spreadsheet_id": "1W3eSF4sGT69yAGfVKWusFq63840nvkyKXcQeNGpD5bE",
             "gid": "296350984",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "C",
+            "key_column": "D",
             "check_columns": [
-                "H"
+                "I"
             ]
         },
         {
@@ -529,9 +529,9 @@
             "spreadsheet_id": "1ETiPs6SRmq7jo28rLNgDSTdy4IpFgTZWBUlpbJYZaWs",
             "gid": "0",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "D",
+            "key_column": "E",
             "check_columns": [
-                "J"
+                "L"
             ]
         },
         {
@@ -539,9 +539,9 @@
             "spreadsheet_id": "1ETiPs6SRmq7jo28rLNgDSTdy4IpFgTZWBUlpbJYZaWs",
             "gid": "1585243814",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "C",
+            "key_column": "D",
             "check_columns": [
-                "I"
+                "K"
             ]
         }
     ],
@@ -763,9 +763,9 @@
             "spreadsheet_id": "11uIhmgtgHndus3-m96vvLspjGK4oA69OEyBp0W1Cy0k",
             "gid": "2121753331",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "G",
+            "key_column": "C",
             "check_columns": [
-                "K"
+                "G"
             ]
         },
         {
