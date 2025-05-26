@@ -215,9 +215,9 @@
             "spreadsheet_id": "1-RhEOmibM-tfITHotDi1hevZ17PebVL-",
             "gid": "1026654160",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "B",
+            "key_column": "C",
             "check_columns": [
-                "H"
+                "I"
             ]
         },
         {
@@ -363,7 +363,7 @@
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "B",
             "check_columns": [
-                "F"
+                "G"
             ]
         },
         {
@@ -617,7 +617,7 @@
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "G",
             "check_columns": [
-                "M"
+                "N"
             ]
         }
     ],
@@ -867,7 +867,7 @@
         {
             "project_name": "MLS_U38A",
             "spreadsheet_id": "1Dv3Jc3FvdE2FDfvP5jqmmn_L4v_LhvFEXFVvQ3um4RU",
-            "gid": "1185391623",
+            "gid": "0",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "B",
             "check_columns": [
@@ -955,9 +955,9 @@
             "spreadsheet_id": "178yQGG_fGqZZA7z0X8IQYFmSWDTVzcG06Rp6LvSaqfE",
             "gid": "0",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "F",
+            "key_column": "C",
             "check_columns": [
-                "K"
+                "H"
             ]
         },
         {
@@ -967,7 +967,7 @@
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "F",
             "check_columns": [
-                "J"
+                "K"
             ]
         }
     ],
