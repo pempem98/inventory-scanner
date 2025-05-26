@@ -19,6 +19,8 @@ logging.basicConfig(
     encoding='utf-8'
 )
 
+error_messages = list()
+
 class WorkflowManager:
     """Quản lý workflow tải Google Sheet và so sánh snapshot."""
 
@@ -77,7 +79,9 @@ class WorkflowManager:
             logging.warning(f"File {self.workflow_config_file} không tồn tại, dùng config mặc định.")
             return default_config
         except Exception as e:
-            logging.error(f"Lỗi khi đọc file {self.workflow_config_file}: {e}, dùng config mặc định.")
+            message = f"Lỗi khi đọc file {self.workflow_config_file}: {e}, dùng config mặc định."
+            logging.error(message)
+            error_messages.append(message)
             return default_config
 
     def _get_file_name(self, agent_name: str, config: AgentConfig.Config, directory: str) -> str:
@@ -145,7 +149,9 @@ class WorkflowManager:
         download_url = downloader.download(output_file=file_name)
 
         if not os.path.exists(file_name):
-            logging.error(f"Không tạo được file snapshot {file_name} cho {agent_name}/{config.project_name}")
+            message = f"Không tạo được file snapshot {file_name} cho {agent_name}/{config.project_name}"
+            logging.error(message)
+            error_messages.append(message)
             return '', ''
 
         logging.info(f"Đã tải snapshot {file_name} cho {agent_name}/{config.project_name} trong {time.time() - start_time:.2f}s")
@@ -161,8 +167,10 @@ class WorkflowManager:
         logging.info(f"Bắt đầu so sánh snapshot cho {agent_name}/{config.project_name}")
 
         if not os.path.exists(current_file):
-            logging.error(f"File current {current_file} không tồn tại.")
-            result['message'] = f"[Warning] Bản ghi mới {current_file} không tồn tại."
+            message = f"Bản ghi mới {current_file} không tồn tại."
+            result['message'] = f"[Warning] {message}"
+            logging.error(message)
+            error_messages.append(message)
             return result
 
         if not predecessor_file:
@@ -198,7 +206,9 @@ class WorkflowManager:
         for item in self.configs:
             try:
                 if not hasattr(item, 'agent_name') or not hasattr(item, 'configs'):
-                    logging.error(f"Đối tượng config không hợp lệ: {item}")
+                    message = f"Đối tượng config không hợp lệ: {item}"
+                    logging.error(message)
+                    error_messages.append(message)
                     continue
                 agent_name, agent_configs = item.agent_name, item.configs
                 results[agent_name] = {}
@@ -213,7 +223,9 @@ class WorkflowManager:
                     result['url'] = download_url
                     results[agent_name][config.project_name] = result
             except Exception as e:
-                logging.error(f"Lỗi khi xử lý đại lý {agent_name}: {e}")
+                message = f"Lỗi khi xử lý đại lý {agent_name}: {e}"
+                logging.error(message)
+                error_messages.append(message)
                 continue
 
         # Tạo báo cáo
@@ -232,6 +244,9 @@ class WorkflowManager:
                 workflow_config=self.workflow_config,
             )
             notifier.notify(aligned_results, report_file)
+            if error_messages:
+                message = "Check log error: <blockquote expandable>" + "\n".join([f"<p>{msg}</p>" for msg in error_messages]) + "</blockquote>"
+                notifier.send_message([], [message])
         else:
             logging.warning("Thiếu cấu hình Telegram, bỏ qua thông báo.")
 
