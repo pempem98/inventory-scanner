@@ -90,6 +90,14 @@ class TelegramNotifier:
                     if not added and not removed:
                         continue
 
+                    if len(removed) > 100:
+                        removed = removed[:100]
+                        removed.append("...")
+
+                    if len(remaining) > 100:
+                        remaining = remaining[:100]
+                        remaining.append("...")
+
                     message = f"🏢 <b>Đại lý</b>: {agent_name}\n"
                     message += f"📋 <b>Dự án</b>: {short_project_name}\n\n"
                     if added:
@@ -101,7 +109,7 @@ class TelegramNotifier:
                         if remaining:
                             message += "\n\n📊 <b>Quỹ căn hiện tại</b>:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in remaining]) + "</blockquote>"
                         else:
-                            message += "\n\n📊 <b>Quỹ căn hiện tại</b>: Không có"
+                            message += "\n\n📊 <b>Quỹ căn hiện tại</b>: Không còn (Lỗi E1?)"
                     else:
                         message += "✅ <b>Đã bán</b>: Không có"
 
