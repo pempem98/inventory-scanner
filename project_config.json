@@ -708,7 +708,7 @@
     "TPL": [
         {
             "project_name": "LSB_MLS_MTS",
-            "spreadsheet_id": "1-vlFCEavFrIja83xq6tTHjtg0C5G3NYY",
+            "spreadsheet_id": "1PdqQrb01WO2k3E-2yrtE7Wr5NGxEf36q",
             "gid": "1637633419",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "E",
@@ -743,9 +743,9 @@
             "spreadsheet_id": "1_8KWuwV8M3gSKlRBHJfCoW2uXnz21R13eiC2Po73hho",
             "gid": "516027355",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "B",
+            "key_column": "C",
             "check_columns": [
-                "H"
+                "F"
             ]
         },
         {
@@ -1000,6 +1000,28 @@
             "key_column": "C",
             "check_columns": [
                 "I"
+            ]
+        }
+    ],
+    "Five Star": [
+        {
+            "project_name": "MTS_Cx",
+            "spreadsheet_id": "1iWvVkVmSVjtVaVB2MzhpNnES8yay3xsO",
+            "gid": "2142838257",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "D",
+            "check_columns": [
+                "J"
+            ]
+        },
+        {
+            "project_name": "MTS_Sx",
+            "spreadsheet_id": "1iWvVkVmSVjtVaVB2MzhpNnES8yay3xsO",
+            "gid": "888118113",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "D",
+            "check_columns": [
+                "J"
             ]
         }
     ]
