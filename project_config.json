@@ -11,7 +11,7 @@
             ]
         },
         {
-            "project_name": "MTS_Sx",
+            "project_name": "MTS_CxSx",
             "spreadsheet_id": "1eqGTrCjn4hKK1RfmL521IorH5Rc2X1j38zEnfbSa1dA",
             "gid": "878838056",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
@@ -21,9 +21,19 @@
             ]
         },
         {
-            "project_name": "MTS_Cx",
+            "project_name": "MTS_Nx",
             "spreadsheet_id": "1eqGTrCjn4hKK1RfmL521IorH5Rc2X1j38zEnfbSa1dA",
-            "gid": "1124809750",
+            "gid": "1993960026",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "C",
+            "check_columns": [
+                "G"
+            ]
+        },
+        {
+            "project_name": "MRD",
+            "spreadsheet_id": "1_I4NgKcBAkq6s0d5XBIN4PuRExZqPYxA48qrWDEnU_c",
+            "gid": "0",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "C",
             "check_columns": [
@@ -77,15 +87,35 @@
             "spreadsheet_id": "1FCXG7CFjFHul4t8l9lnVzrOdgIs70aVg",
             "gid": "1248261107",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "C",
+            "key_column": "B",
             "check_columns": [
-                "J"
+                "G"
             ]
         },
         {
             "project_name": "MTS_Cx",
             "spreadsheet_id": "1FCXG7CFjFHul4t8l9lnVzrOdgIs70aVg",
             "gid": "977341538",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "B",
+            "check_columns": [
+                "G"
+            ]
+        },
+        {
+            "project_name": "MTS_Nx",
+            "spreadsheet_id": "1FCXG7CFjFHul4t8l9lnVzrOdgIs70aVg",
+            "gid": "1292371084",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "B",
+            "check_columns": [
+                "G"
+            ]
+        },
+        {
+            "project_name": "MRD",
+            "spreadsheet_id": "1YEMCfjUkh76BOADe8ulwqsLbMT3xEpAj",
+            "gid": "1248261107",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "C",
             "check_columns": [
@@ -122,6 +152,16 @@
             "key_column": "C",
             "check_columns": [
                 "J"
+            ]
+        },
+        {
+            "project_name": "MRD",
+            "spreadsheet_id": "1IbWRays-AjRnvkOJGMqQqBwUGsh3i1dIlMyCR7TdU1Q",
+            "gid": "0",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "C",
+            "check_columns": [
+                "I"
             ]
         }
     ],
@@ -225,9 +265,19 @@
             "spreadsheet_id": "1-RhEOmibM-tfITHotDi1hevZ17PebVL-",
             "gid": "647431008",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "B",
+            "key_column": "C",
             "check_columns": [
-                "H"
+                "I"
+            ]
+        },
+        {
+            "project_name": "MTS_Nx",
+            "spreadsheet_id": "1-RhEOmibM-tfITHotDi1hevZ17PebVL-",
+            "gid": "903020846",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "C",
+            "check_columns": [
+                "I"
             ]
         }
     ],
@@ -261,6 +311,16 @@
             "check_columns": [
                 "I"
             ]
+        },
+        {
+            "project_name": "MRD",
+            "html_url": "https://partner.futurehomes.vn/",
+            "gid": "MRD",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "A",
+            "check_columns": [
+                "I"
+            ]
         }
     ],
     "HOMEPLUS": [
@@ -275,13 +335,23 @@
             ]
         },
         {
-            "project_name": "MGA",
+            "project_name": "MGA_S1",
             "spreadsheet_id": "1DDIp2nSdB_5o_3W4wBuUbFnao37AdHYaLXwLnEEA-mw",
-            "gid": "1356571437",
+            "gid": "1370326950",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "D",
+            "key_column": "B",
             "check_columns": [
-                "H"
+                "E"
+            ]
+        },
+        {
+            "project_name": "MGA_S2",
+            "spreadsheet_id": "1DDIp2nSdB_5o_3W4wBuUbFnao37AdHYaLXwLnEEA-mw",
+            "gid": "1573645600",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "B",
+            "check_columns": [
+                "E"
             ]
         },
         {
@@ -312,6 +382,26 @@
             "key_column": "B",
             "check_columns": [
                 "H"
+            ]
+        },
+        {
+            "project_name": "MTS_Nx",
+            "spreadsheet_id": "1JcPb_YG_84qXsxk0rR9OqpjY4bnlDmI_",
+            "gid": "1973934874",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "B",
+            "check_columns": [
+                "H"
+            ]
+        },
+        {
+            "project_name": "MRD",
+            "spreadsheet_id": "1abIvGXgxB17JR4nDYEM8i1SDgBVg9oQdxmoT6aNDNzs",
+            "gid": "0",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "B",
+            "check_columns": [
+                "I"
             ]
         }
     ],
@@ -543,6 +633,16 @@
             "check_columns": [
                 "K"
             ]
+        },
+        {
+            "project_name": "MTS_Nx",
+            "spreadsheet_id": "1ETiPs6SRmq7jo28rLNgDSTdy4IpFgTZWBUlpbJYZaWs",
+            "gid": "651449746",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "D",
+            "check_columns": [
+                "K"
+            ]
         }
     ],
     "Queenland": [
@@ -587,6 +687,16 @@
             "check_columns": [
                 "J"
             ]
+        },
+        {
+            "project_name": "MRD",
+            "spreadsheet_id": "1XfkuQZyVui85eDi0uH7gASn3G63zigOh",
+            "gid": "1312180377",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "E",
+            "check_columns": [
+                "J"
+            ]
         }
     ],
     "TL": [
@@ -618,6 +728,16 @@
             "key_column": "G",
             "check_columns": [
                 "N"
+            ]
+        },
+        {
+            "project_name": "MRD",
+            "spreadsheet_id": "1hWPx0ddQWmr041CreTsCAwDWCoY0gWt5Qp0pnJKhoMk",
+            "gid": "745072948",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "D",
+            "check_columns": [
+                "M"
             ]
         }
     ],
@@ -702,6 +822,26 @@
             "key_column": "B",
             "check_columns": [
                 "I"
+            ]
+        },
+        {
+            "project_name": "MTS_Nx",
+            "spreadsheet_id": "1ADNMT-zFlIBs65M8138ridB31OBnwK0QJ6wV9CdSKMY",
+            "gid": "2028354250",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "B",
+            "check_columns": [
+                "I"
+            ]
+        },
+        {
+            "project_name": "MRD",
+            "spreadsheet_id": "1eqk6Jm7MQEJyEALW425wgeap2P_ZpqU5",
+            "gid": "2087368722",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "C",
+            "check_columns": [
+                "G"
             ]
         }
     ],
@@ -841,47 +981,27 @@
             "check_columns": [
                 "E"
             ]
+        },
+        {
+            "project_name": "MTS_Nx",
+            "spreadsheet_id": "1fARuXIXR_ZVUkCDkpsHtb8X6gD3Nv6qXJKiFg7cusDo",
+            "gid": "662233602",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "B",
+            "check_columns": [
+                "E"
+            ]
         }
     ],
     "AHS": [
         {
             "project_name": "MGA",
-            "spreadsheet_id": "1FMatZTVaUCubTbd0UeJyAK2f9ZT6lF9j",
-            "gid": "1066640144",
-            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "B",
-            "check_columns": [
-                "F"
-            ]
-        },
-        {
-            "project_name": "MLS_U38_Z34",
-            "spreadsheet_id": "1Dv3Jc3FvdE2FDfvP5jqmmn_L4v_LhvFEXFVvQ3um4RU",
-            "gid": "0",
-            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "B",
-            "check_columns": [
-                "F"
-            ]
-        },
-        {
-            "project_name": "MLS_U38A",
-            "spreadsheet_id": "1Dv3Jc3FvdE2FDfvP5jqmmn_L4v_LhvFEXFVvQ3um4RU",
-            "gid": "0",
-            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "B",
-            "check_columns": [
-                "F"
-            ]
-        },
-        {
-            "project_name": "MTS",
-            "spreadsheet_id": "1ntUNva1sqOgisxB5ISnLCJEn-YHkl-w0Xh43KrJtFZc",
+            "spreadsheet_id": "19o5XCotAvgrnidY4m0MwWIvB87yRo8dud3vqw-O9pfA",
             "gid": "0",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "C",
             "check_columns": [
-                "G"
+                "I"
             ]
         }
     ],
@@ -899,27 +1019,27 @@
     ],
     "THIÊN PHÚC - MAI VIỆT": [
         {
-            "project_name": "LSB_MLS",
+            "project_name": "LSB",
             "spreadsheet_id": "1qhEMwwLrGfGaGP41qvGcYqGY5glx6_9R",
-            "gid": "1621820955",
+            "gid": "1215616220",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "E",
+            "check_columns": [
+                "P"
+            ]
+        },
+        {
+            "project_name": "MLS",
+            "spreadsheet_id": "1qhEMwwLrGfGaGP41qvGcYqGY5glx6_9R",
+            "gid": "145959440",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "B",
             "check_columns": [
-                "J"
+                "E"
             ]
         },
         {
-            "project_name": "MTS_Sx",
-            "spreadsheet_id": "1yCxJgH43uAkhE4ad1IvAeSNueWHsW6g1IqEeH6Nz7DA",
-            "gid": "0",
-            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
-            "key_column": "C",
-            "check_columns": [
-                "G"
-            ]
-        },
-        {
-            "project_name": "MTS_Cx",
+            "project_name": "MTS",
             "spreadsheet_id": "15sJU6ifgmTpqEppNbCVjBkfbXWwUDNQKDecYuwUPXBU",
             "gid": "0",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
@@ -1005,7 +1125,7 @@
     ],
     "Five Star": [
         {
-            "project_name": "MTS_Cx",
+            "project_name": "MTS_CxSx",
             "spreadsheet_id": "1iWvVkVmSVjtVaVB2MzhpNnES8yay3xsO",
             "gid": "2142838257",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
@@ -1015,13 +1135,37 @@
             ]
         },
         {
-            "project_name": "MTS_Sx",
+            "project_name": "MTS_Nx",
             "spreadsheet_id": "1iWvVkVmSVjtVaVB2MzhpNnES8yay3xsO",
-            "gid": "888118113",
+            "gid": "1021098999",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "F",
+            "check_columns": [
+                "J"
+            ]
+        }
+    ],
+    "RH": [
+        {
+            "project_name": "MRD",
+            "spreadsheet_id": "1WF3rWQS0-hlkSJ21oDlyvA0EaR6GZqMj",
+            "gid": "745172046",
             "invalid_colors": [ "#ea4335" ,"#ff0000" ],
             "key_column": "D",
             "check_columns": [
-                "J"
+                "M"
+            ]
+        }
+    ],
+    "An Holding": [
+        {
+            "project_name": "MRD",
+            "spreadsheet_id": "1IIBAgn5Ol3V5RPCEBaBhM44sbS6OiJs50J36pltujtM",
+            "gid": "17885383",
+            "invalid_colors": [ "#ea4335" ,"#ff0000" ],
+            "key_column": "D",
+            "check_columns": [
+                "M"
             ]
         }
     ]
