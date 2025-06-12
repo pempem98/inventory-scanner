@@ -245,7 +245,7 @@ class WorkflowManager:
             )
             notifier.notify(aligned_results, report_file)
             if error_messages:
-                message = "Check log error: <blockquote expandable>" + "\n".join([f"<p>{msg}</p>" for msg in error_messages]) + "</blockquote>"
+                message = "Check log error: <blockquote expandable>" + "\n".join([msg for msg in error_messages]) + "</blockquote>"
                 notifier.send_message([], [message])
         else:
             logging.warning("Thiếu cấu hình Telegram, bỏ qua thông báo.")

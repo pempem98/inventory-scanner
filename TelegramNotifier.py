@@ -130,6 +130,7 @@ class TelegramNotifier:
                     logging.info(f"Đã gửi tin nhắn Telegram: {message[:100]}...")
                 else:
                     logging.error(f"Lỗi khi gửi tin nhắn Telegram: {response.text}")
+                    logging.error(message)
             except Exception as e:
                 logging.error(f"Lỗi khi gửi tin nhắn Telegram: {e}")
             time.sleep(1)  # Đợi 1 giây giữa các tin nhắn để tránh bị chặn
