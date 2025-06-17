@@ -1,14 +1,14 @@
-import json
 import os
-import shutil
+import json
 import time
-from datetime import datetime
 import logging
-from typing import Dict, List, Any, Optional, Tuple
-from AgentConfig import AgentConfig
+import pandas as pd
+from typing import Dict, List, Any, Optional
+from collections import defaultdict
+
+# Import các module đã được tùy chỉnh
+from DatabaseManager import DatabaseManager
 from GoogleSheetDownloader import GoogleSheetDownloader
-from ExcelSnapshotComparator import ExcelSnapshotComparator
-from ReportGenerator import ReportGenerator
 from TelegramNotifier import TelegramNotifier
 
 # Thiết lập logging
@@ -19,248 +19,315 @@ logging.basicConfig(
     encoding='utf-8'
 )
 
-error_messages = list()
-
 class WorkflowManager:
-    """Quản lý workflow tải Google Sheet và so sánh snapshot."""
+    """
+    Quản lý luồng công việc chính: tải, so sánh, và thông báo dữ liệu
+    dựa trên cấu hình từ cơ sở dữ liệu SQLite.
+    """
 
-    def __init__(
-        self,
-        config_file: str,
-        workflow_config_file: str = 'workflow_config.json',
-        predecessor_dir: str = 'predecessor',
-        current_dir: str = 'current',
-        backup_dir: str = 'backup',
-        proxies: Optional[Dict[str, str]] = None
-    ):
-        self.config_file = config_file
-        self.workflow_config_file = workflow_config_file
-        self.predecessor_dir = predecessor_dir
-        self.current_dir = current_dir
-        self.backup_dir = backup_dir
+    def __init__(self, bot_token: str, proxies: Optional[Dict[str, str]] = None):
+        """
+        Khởi tạo WorkflowManager.
+
+        Args:
+            bot_token: Token của bot Telegram để sử dụng cho việc thông báo.
+            proxies: Cấu hình proxy (nếu có).
+        """
+        self.db_manager = DatabaseManager()
         self.proxies = proxies
-        self.configs = AgentConfig.load_from_json(config_file)
-        self.workflow_config = self._load_workflow_config()
-
-        # Kiểm tra cấu trúc self.configs
-        if not isinstance(self.configs, list) or not all(hasattr(item, 'agent_name') and hasattr(item, 'configs') for item in self.configs):
-            logging.error(f"Cấu trúc self.configs không hợp lệ: {self.configs}")
-            raise ValueError("self.configs phải là danh sách các AgentConfig với agent_name và configs")
-
-        # Kiểm tra proxy
-        if self.proxies:
-            logging.info(f"Sử dụng proxy: {self.proxies}")
+        # Khởi tạo Notifier một lần để tái sử dụng
+        if bot_token:
+            self.notifier = TelegramNotifier(bot_token=bot_token, proxies=self.proxies)
         else:
-            logging.info("Không sử dụng proxy")
+            self.notifier = None
+            logging.warning("Không có BOT_TOKEN, sẽ không có thông báo nào được gửi.")
 
-        # Tạo các thư mục nếu chưa tồn tại
-        for directory in [self.predecessor_dir, self.current_dir, self.backup_dir]:
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-                logging.info(f"Đã tạo thư mục {directory}.")
+    def _find_header_and_columns(self, df: pd.DataFrame, config: dict) -> Optional[Dict[str, Any]]:
+        """
+        Tự động tìm hàng header và vị trí các cột quan trọng dựa vào cấu hình.
+        """
+        key_col_aliases = [key.lower() for key in json.loads(config.get('key_column_aliases', '[]'))]
+        price_col_aliases = [key.lower() for key in json.loads(config.get('price_column_aliases', '[]'))]
+        if not key_col_aliases:
+            logging.error(f"Dự án {config['project_name']} không có 'key_column_aliases' được cấu hình.")
+            return None
 
-    def _load_workflow_config(self) -> Dict[str, Any]:
-        """Đọc file config workflow."""
-        default_config = {
-            'allowed_key_pattern': r'^[A-Za-z0-9_.-]+$',
-            'snapshot_extension': '.xlsx',
-            'project_prefix': {},
-            'telegram': {}
-        }
-        try:
-            if os.path.exists(self.workflow_config_file):
-                with open(self.workflow_config_file, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-                if not isinstance(config, dict):
-                    raise ValueError("File workflow config phải là dictionary.")
-                config.setdefault('project_prefix', {})
-                config.setdefault('telegram', {})
-                return config
-            logging.warning(f"File {self.workflow_config_file} không tồn tại, dùng config mặc định.")
-            return default_config
-        except Exception as e:
-            message = f"Lỗi khi đọc file {self.workflow_config_file}: {e}, dùng config mặc định."
-            logging.error(message)
-            error_messages.append(message)
-            return default_config
+        header_row_idx = -1
 
-    def _get_file_name(self, agent_name: str, config: AgentConfig.Config, directory: str) -> str:
-        """Tạo tên file theo định dạng {agent_name}_{project_name}.xlsx."""
-        clean_project_name = config.project_name.replace(' ', '_')
-        file_extension = self.workflow_config.get('snapshot_extension', '.xlsx')
-        file_name = f"{agent_name}_{clean_project_name}{file_extension}"
-        return os.path.join(directory, file_name)
-
-    def _find_predecessor_file(self, agent_name: str, config: AgentConfig.Config) -> str:
-        """Tìm file predecessor trong thư mục predecessor."""
-        file_path = self._get_file_name(agent_name, config, self.predecessor_dir)
-        if os.path.exists(file_path):
-            logging.info(f"Tìm thấy file predecessor: {file_path} cho {agent_name}/{config.project_name}")
-            return file_path
-        return ''
-
-    def _backup_predecessor_files(self) -> None:
-        """Sao lưu tất cả file trong thư mục predecessor vào backup với dấu thời gian."""
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_subdir = os.path.join(self.backup_dir, f"backup_{timestamp}")
-        os.makedirs(backup_subdir, exist_ok=True)
-
-        for file_name in os.listdir(self.predecessor_dir):
-            src_path = os.path.join(self.predecessor_dir, file_name)
-            if os.path.isfile(src_path):
-                dst_path = os.path.join(backup_subdir, file_name)
-                shutil.copy2(src_path, dst_path)
-                logging.info(f"Đã sao lưu {src_path} vào {dst_path}")
-
-    def _copy_current_to_predecessor(self) -> None:
-        """Sao chép tất cả file từ current sang predecessor, xóa file đã sao chép."""
-        copied_files = []
-        for file_name in os.listdir(self.current_dir):
-            src_path = os.path.join(self.current_dir, file_name)
-            if os.path.isfile(src_path):
-                dst_path = os.path.join(self.predecessor_dir, file_name)
-                shutil.copy2(src_path, dst_path)
-                logging.info(f"Đã sao chép {src_path} sang {dst_path} (ghi đè nếu tồn tại)")
-                copied_files.append(src_path)
-
-        for file_path in copied_files:
-            os.remove(file_path)
-            logging.info(f"Đã xóa {file_path}")
-
-        if not os.listdir(self.current_dir):
-            logging.info(f"Thư mục {self.current_dir} đã trống sau khi sao chép")
+        # Ưu tiên 1: Lấy chỉ số hàng được cấu hình sẵn
+        config_header_idx = config.get('header_row_index')
+        if config_header_idx and 0 < config_header_idx <= len(df):
+            header_row_idx = config_header_idx - 1
         else:
-            logging.warning(f"Thư mục {self.current_dir} vẫn còn file sau khi sao chép: {os.listdir(self.current_dir)}")
+            # Ưu tiên 2: Tự động quét 10 dòng đầu tiên để tìm header
+            for i, row in df.head(10).iterrows():
+                row_values = {str(val).strip().lower() for val in row.dropna().values}
+                if not set(key_col_aliases).isdisjoint(row_values):
+                    header_row_idx = i
+                    break
+        
+        if header_row_idx == -1:
+            logging.error(f"Không thể tự động tìm thấy hàng header cho dự án {config['project_name']}.")
+            return None
+        
+        header_content = [str(h).strip().lower() for h in df.iloc[header_row_idx].tolist()]
 
-    def _download_snapshot(self, agent_name: str, config: AgentConfig.Config) -> Tuple[str, str]:
-        """Tải Google Sheet và lưu snapshot vào thư mục current."""
-        start_time = time.time()
-        file_name = self._get_file_name(agent_name, config, self.current_dir)
-
-        logging.info(f"Bắt đầu tải snapshot cho {agent_name}/{config.project_name}")
-        print(f"Đại lý {agent_name} - Dự án {config.project_name}")
-
-        downloader = GoogleSheetDownloader(
-            spreadsheet_id=config.spreadsheet_id,
-            html_url=config.html_url,
-            gid=config.gid,
-            proxies=self.proxies
-        )
-        download_url = downloader.download(output_file=file_name)
-
-        if not os.path.exists(file_name):
-            message = f"Không tạo được file snapshot {file_name} cho {agent_name}/{config.project_name}"
-            logging.error(message)
-            error_messages.append(message)
-            return '', ''
-
-        logging.info(f"Đã tải snapshot {file_name} cho {agent_name}/{config.project_name} trong {time.time() - start_time:.2f}s")
-        return file_name, download_url
-
-    def _compare_snapshots(self, agent_name: str, config: AgentConfig.Config) -> Dict[str, List]:
-        """So sánh file current với predecessor."""
-        start_time = time.time()
-        current_file = self._get_file_name(agent_name, config, self.current_dir)
-        predecessor_file = self._find_predecessor_file(agent_name, config)
-        result = {'added': [], 'removed': [], 'changed': [], 'remaining': []}
-
-        logging.info(f"Bắt đầu so sánh snapshot cho {agent_name}/{config.project_name}")
-
-        if not os.path.exists(current_file):
-            message = f"Bản ghi mới {current_file} không tồn tại."
-            result['message'] = f"[Warning] {message}"
-            logging.error(message)
-            error_messages.append(message)
-            return result
-
-        if not predecessor_file:
-            message = f"Không tìm thấy bản ghi cũ cho {agent_name}/{config.project_name}. Bỏ qua so sánh."
-            logging.info(message)
-            result['message'] = f"[Warning] {message}"
-            return result
-
-        comparator = ExcelSnapshotComparator(
-            file_predecessor=predecessor_file,
-            file_current=current_file,
-            key_col=config.key_column,
-            check_cols=config.check_columns,
-            allowed_key_pattern=self.workflow_config.get('allowed_key_pattern', r'^[A-Za-z0-9_.-]+$'),
-            invalid_colors=config.invalid_colors,
-        )
-        result = comparator.compare()
-        logging.info(f"Kết quả so sánh cho {agent_name}/{config.project_name} trong {time.time() - start_time:.2f}s: {result}")
-        return result
-
-    def run(self) -> Dict[str, Dict[str, Dict[str, List]]]:
-        """Chạy workflow: tải snapshot, so sánh, tạo báo cáo và gửi thông báo."""
-        start_time = time.time()
-        results = {}
-
-        logging.info("Bắt đầu chạy workflow")
-
-        # Sao lưu và cập nhật predecessor
-        self._backup_predecessor_files()
-        self._copy_current_to_predecessor()
-
-        # Tải snapshot cho tất cả đại lý
-        for item in self.configs:
+        # Tìm vị trí cột khóa
+        key_col_idx = None
+        for alias in key_col_aliases:
             try:
-                if not hasattr(item, 'agent_name') or not hasattr(item, 'configs'):
-                    message = f"Đối tượng config không hợp lệ: {item}"
-                    logging.error(message)
-                    error_messages.append(message)
+                key_col_idx = header_content.index(alias)
+                break
+            except ValueError:
+                continue
+        
+        if key_col_idx is None:
+            logging.error(f"Không tìm thấy cột khóa nào cho dự án {config['project_name']}.")
+            return None
+
+        # --- [MỚI] Tìm cột giá (price) ---
+        price_col_idx = None # Cột giá có thể không bắt buộc
+        if price_col_aliases:
+            for alias in price_col_aliases:
+                try:
+                    price_col_idx = header_content.index(alias)
+                    break
+                except ValueError:
                     continue
-                agent_name, agent_configs = item.agent_name, item.configs
-                results[agent_name] = {}
-                for config in agent_configs:
-                    logging.info(f"Xử lý {agent_name}/{config.project_name}")
-                    snapshot_file, download_url = self._download_snapshot(agent_name, config)
-                    if snapshot_file:
-                        result = self._compare_snapshots(agent_name, config)
-                    else:
-                        result = {'message': f"[Error] Không tải được bản ghi cho {agent_name}/{config.project_name}"}
-                        result.update({'added': [], 'removed': [], 'changed': [], 'remaining': []})
-                    result['url'] = download_url
-                    results[agent_name][config.project_name] = result
+        
+        if price_col_idx is None:
+            logging.warning(f"Không tìm thấy cột giá cho dự án {config['project_name']}. Bỏ qua việc theo dõi giá.")
+
+        logging.info(f"Đã xác định header ở dòng {header_row_idx + 1}. Cột khóa ở vị trí {key_col_idx}, Cột giá ở vị trí {price_col_idx}.")
+
+        # --- [MỚI] Trả về cả price_col_idx ---
+        return {
+            "header_row_idx": header_row_idx,
+            "key_col_idx": key_col_idx,
+            "price_col_idx": price_col_idx,
+            "header": header_content
+        }
+
+    def _normalize_and_validate_key(self, key: Any, prefixes: Optional[List[str]]) -> Optional[str]:
+        """Làm sạch và kiểm tra key có hợp lệ với các tiền tố đã cho không."""
+        if not isinstance(key, (str, int, float)):
+            return None
+        
+        clean_key = str(key).strip().upper()
+        if not clean_key:
+            return None
+        
+        if not prefixes:
+            return clean_key # Nếu không cấu hình prefix, mọi key đều hợp lệ
+
+        for prefix in prefixes:
+            if clean_key.startswith(prefix.upper()):
+                return clean_key
+        
+        return None # Key không hợp lệ
+
+    def _extract_snapshot_data(self, data_df: pd.DataFrame, color_df: pd.DataFrame, header_info: dict, config: dict) -> Dict[str, Any]:
+        """
+        Trích xuất dữ liệu snapshot từ DataFrame, có kiểm tra màu sắc không hợp lệ.
+        """
+        snapshot_data = {}
+        key_col_idx = header_info['key_col_idx']
+        price_col_idx = header_info['price_col_idx']
+        
+        # Lấy cấu hình màu không hợp lệ từ DB
+        invalid_colors_json = config.get('invalid_colors', '[]')
+        invalid_colors = {c.lower() for c in json.loads(invalid_colors_json)}
+
+        # Lấy DataFrame chứa dữ liệu và màu sắc thực tế (bỏ các dòng trên header)
+        data_rows_df = data_df.iloc[header_info['header_row_idx'] + 1:]
+        color_rows_df = color_df.iloc[header_info['header_row_idx'] + 1:]
+
+        # Lấy cấu hình tiền tố
+        prefixes_json = config.get('key_prefixes')
+        valid_prefixes = json.loads(prefixes_json) if prefixes_json else None
+
+        for index, row in data_rows_df.iterrows():
+            raw_key = row.iloc[key_col_idx]
+            valid_key = self._normalize_and_validate_key(raw_key, valid_prefixes)
+
+            if valid_key:
+                # Kiểm tra màu sắc của ô key
+                try:
+                    cell_color = color_rows_df.loc[index].iloc[key_col_idx]
+                    if cell_color and cell_color.lower() in invalid_colors:
+                        logging.info(f"Bỏ qua key '{valid_key}' do có màu không hợp lệ: {cell_color}")
+                        continue # Bỏ qua key này và đi đến vòng lặp tiếp theo
+                except (KeyError, IndexError):
+                    # Bỏ qua nếu không tìm thấy màu tương ứng (ít khi xảy ra)
+                    pass
+
+                price_value = None
+                if price_col_idx is not None:
+                    price_value = row.iloc[price_col_idx]
+
+                # Nếu key hợp lệ và màu hợp lệ, thêm vào snapshot\
+                snapshot_data[valid_key] = {
+                    "price": price_value
+                }
+
+        return snapshot_data
+
+    def _compare_snapshots(self, new_snapshot: Dict, old_snapshot: Dict) -> Dict[str, List]:
+        """So sánh hai snapshot, có thể mở rộng để so sánh cả giá."""
+        new_keys = set(new_snapshot.keys())
+        old_keys = set(old_snapshot.keys())
+
+        added = sorted(list(new_keys - old_keys))
+        removed = sorted(list(old_keys - new_keys))
+        
+        changed = []
+        # [MỚI] So sánh giá cho các key chung
+        common_keys = new_keys.intersection(old_keys)
+        for key in common_keys:
+            old_price = old_snapshot[key].get('price')
+            new_price = new_snapshot[key].get('price')
+            
+            # Xử lý trường hợp giá là NaN hoặc None
+            old_price_is_nan = pd.isna(old_price)
+            new_price_is_nan = pd.isna(new_price)
+            
+            if old_price_is_nan and new_price_is_nan:
+                continue # Cả hai đều không có giá trị, coi như không đổi
+            
+            if old_price != new_price and not (old_price_is_nan and new_price_is_nan):
+                 changed.append({
+                    "key": key,
+                    "field": "price",
+                    "old": old_price,
+                    "new": new_price
+                 })
+
+        return {'added': added, 'removed': removed, 'changed': changed}
+
+    def run(self):
+        """Chạy luồng công việc chính."""
+        logging.info("="*50)
+        logging.info("BẮT ĐẦU PHIÊN LÀM VIỆC MỚI")
+        
+        active_configs = self.db_manager.get_active_configs()
+        if not active_configs:
+            logging.warning("Không có cấu hình nào đang hoạt động trong database. Kết thúc.")
+            return
+
+        all_individual_results = []
+        for config_row in active_configs:
+            config = dict(config_row)
+            agent_name = config['agent_name']
+            project_name = config['project_name']
+            config_id = config['id']
+            
+            print(f"\n▶️  Đang xử lý: {agent_name} - {project_name} (ID: {config_id})")
+
+            try:
+                # 1. Tải dữ liệu từ Google Sheet
+                downloader = GoogleSheetDownloader(
+                    spreadsheet_id=config.get('spreadsheet_id'),
+                    html_url=config.get('html_url'),
+                    gid=config['gid'],
+                    proxies=self.proxies
+                )
+                current_df, color_df, download_url = downloader.download()
+
+                if current_df is None or color_df is None or current_df.empty:
+                    logging.error(f"Không tải được dữ liệu hoặc màu sắc cho ID {config_id}.")
+                    continue
+
+                # 2. Tìm header và các cột quan trọng
+                header_info = self._find_header_and_columns(current_df, config)
+                if not header_info:
+                    logging.error(f"Không xác định được header/cột cho ID {config_id}.")
+                    continue
+                
+                # 3. Trích xuất dữ liệu snapshot hiện tại
+                new_snapshot = self._extract_snapshot_data(current_df, color_df, header_info, config)
+
+                # 4. Lấy snapshot cũ và so sánh
+                old_snapshot = self.db_manager.get_latest_snapshot(config_id)
+                
+                if old_snapshot is not None:
+                    comparison = self._compare_snapshots(new_snapshot, old_snapshot)
+                    print(f"    -> So sánh hoàn tất: {len(comparison['added'])} thêm, {len(comparison['removed'])} bán, {len(comparison['changed'])} đổi.")
+                else:
+                    comparison = {'added': list(new_snapshot.keys()), 'removed': [], 'changed': []}
+                    print("    -> Lần đầu chạy, ghi nhận toàn bộ là căn mới.")
+
+                if comparison.get('added') or comparison.get('removed') or comparison.get('changed'):
+                    all_individual_results.append({
+                        'agent_name': agent_name,
+                        'project_name': project_name,
+                        'telegram_chat_id': config['telegram_chat_id'],
+                        'comparison': comparison
+                    })
+
+                self.db_manager.add_snapshot(config_id, new_snapshot)
+                print(f"    -> Đã lưu snapshot mới với {len(new_snapshot)} keys.")
+
             except Exception as e:
-                message = f"Lỗi khi xử lý đại lý {agent_name}: {e}"
-                logging.error(message)
-                error_messages.append(message)
+                logging.exception(f"Lỗi nghiêm trọng khi xử lý cấu hình ID {config_id}: {e}")
+                print(f"    ❌ Lỗi: {e}. Kiểm tra runtime.log để biết chi tiết.")
+
+        print("\n🔄 Đang tổng hợp và gom nhóm kết quả...")
+        aggregated_results = defaultdict(lambda: {'added': [], 'removed': [], 'changed': [], 'telegram_chat_id': None})
+
+        for result in all_individual_results:
+            key = (result['agent_name'], result['project_name'])
+            
+            aggregated_results[key]['added'].extend(result['comparison']['added'])
+            aggregated_results[key]['removed'].extend(result['comparison']['removed'])
+            aggregated_results[key]['changed'].extend(result['comparison']['changed'])
+            # Lấy chat_id, giả định các cấu hình con của cùng 1 dự án có cùng chat_id
+            if not aggregated_results[key]['telegram_chat_id']:
+                aggregated_results[key]['telegram_chat_id'] = result['telegram_chat_id']
+
+        # Bước 3: Gửi thông báo tổng hợp
+        print("🚀 Đang gửi các thông báo tổng hợp...")
+        if not self.notifier:
+            print("    -> Bỏ qua vì không có BOT_TOKEN.")
+            return
+
+        for (agent_name, project_name), data in aggregated_results.items():
+            chat_id = data['telegram_chat_id']
+            if not chat_id:
                 continue
 
-        # Tạo báo cáo
-        report_generator = ReportGenerator(
-            results=results,
-            workflow_config_file=self.workflow_config_file,
-            output_dir='reports'
-        )
-        report_file = report_generator.generate_report()
+            # Tạo một dict kết quả tổng hợp để format
+            final_result_for_message = {
+                'agent_name': agent_name,
+                'project_name': project_name,
+                'comparison': {
+                    'added': data['added'],
+                    'removed': data['removed'],
+                    'changed': data['changed']
+                }
+            }
+            
+            message = self.notifier.format_message(final_result_for_message)
+            
+            if message:
+                print(f"    -> Gửi thông báo cho: {agent_name} - {project_name}")
+                self.notifier.send_message(chat_id, message)
+                time.sleep(1) # Tạm dừng giữa các tin nhắn
+        
+        self.db_manager.close()
+        print("\n✅ Hoàn thành tất cả các tác vụ.")
 
-        # Gửi thông báo Telegram
-        aligned_results = report_generator.aligned_results
-        telegram_config = self.workflow_config.get('telegram', {})
-        if telegram_config.get('bot_token') and telegram_config.get('chat_id'):
-            notifier = TelegramNotifier(
-                workflow_config=self.workflow_config,
-            )
-            notifier.notify(aligned_results, report_file)
-            if error_messages:
-                message = "Check log error: <blockquote expandable>" + "\n".join([msg for msg in error_messages]) + "</blockquote>"
-                notifier.send_message([], [message])
-        else:
-            logging.warning("Thiếu cấu hình Telegram, bỏ qua thông báo.")
-
-        logging.info(f"Hoàn thành workflow trong {time.time() - start_time:.2f}s")
-        return aligned_results
 
 if __name__ == "__main__":
+    # Lấy BOT_TOKEN từ biến môi trường để bảo mật
+    # Ví dụ: export TELEGRAM_BOT_TOKEN="your_token_here"
+    bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     proxies = {
         'http': 'http://rb-proxy-apac.bosch.com:8080',
         'https': 'http://rb-proxy-apac.bosch.com:8080'
     }
-    manager = WorkflowManager(
-        config_file='project_config.json',
-        workflow_config_file='workflow_config.json',
-        # proxies=proxies
-    )
-    manager.run()
+    if not bot_token:
+        print("Lỗi: Vui lòng thiết lập biến môi trường TELEGRAM_BOT_TOKEN.")
+    else:
+        # Khởi tạo và chạy workflow
+        manager = WorkflowManager(bot_token=bot_token, proxies=None)
+        manager.run()

@@ -8,9 +8,6 @@ from urllib3.util import parse_url
 import re
 import os
 import logging
-from openpyxl import Workbook
-from openpyxl.styles import PatternFill
-from openpyxl.utils import get_column_letter
 
 # Thiết lập logging
 logging.basicConfig(
@@ -100,7 +97,6 @@ class GoogleSheetDownloader:
             css_colors[f's{class_id}'] = color
 
         logging.info(f"Đã trích xuất {len(css_colors)} màu nền từ CSS")
-        logging.info(f"Danh sách màu nền:\n{css_colors}")
         return css_colors
 
     def parse_html_to_data(self, html_content: str) -> Tuple[List[List[str]], List[List[str]]]:
@@ -244,75 +240,28 @@ class GoogleSheetDownloader:
             logging.error(f"Lỗi khi xử lý dữ liệu: {e}")
             raise Exception(f"Lỗi khi xử lý dữ liệu: {e}")
 
-    def save_to_excel(self, data_df: pd.DataFrame, color_df: pd.DataFrame, output_file: str) -> None:
-        """Lưu DataFrame thành file Excel với màu nền.
-
-        Args:
-            data_df: DataFrame chứa dữ liệu.
-            color_df: DataFrame chứa mã màu hex.
-            output_file: Đường dẫn file Excel đầu ra.
-
-        Raises:
-            Exception: Nếu lỗi khi lưu file.
+    def download(self) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame], str]:
         """
-        try:
-            os.makedirs(os.path.dirname(output_file), exist_ok=True)
-            output_file = output_file if output_file.endswith('.xlsx') else f"{output_file}.xlsx"
-
-            wb = Workbook()
-            ws = wb.active
-
-            # Ghi dữ liệu vào worksheet
-            for r_idx, row in enumerate(data_df.values, start=1):
-                for c_idx, value in enumerate(row, start=1):
-                    ws.cell(row=r_idx, column=c_idx).value = value if pd.notna(value) else None
-
-            # Áp dụng màu nền
-            if color_df is not None:
-                for r_idx, row in enumerate(color_df.values, start=1):
-                    for c_idx, color in enumerate(row, start=1):
-                        if color and isinstance(color, str) and color.startswith('#'):
-                            fill = PatternFill(start_color=color[1:], end_color=color[1:], fill_type='solid')
-                            ws.cell(row=r_idx, column=c_idx).fill = fill
-
-            # Điều chỉnh độ rộng cột
-            for col_idx in range(1, data_df.shape[1] + 1):
-                col_letter = get_column_letter(col_idx)
-                max_length = 0
-                for cell in ws[col_letter]:
-                    try:
-                        if cell.value:
-                            max_length = max(max_length, len(str(cell.value)))
-                    except:
-                        pass
-                adjusted_width = max_length + 2
-                ws.column_dimensions[col_letter].width = adjusted_width
-
-            wb.save(output_file)
-            logging.info(f"Đã lưu dữ liệu và màu nền vào {output_file}")
-            print(f"Đã lưu dữ liệu và màu nền vào {output_file}")
-        except Exception as e:
-            logging.error(f"Lỗi khi lưu file Excel: {e}")
-            raise Exception(f"Lỗi khi lưu file Excel: {e}")
-
-    def download(self, output_file: str = 'current/downloaded_sheet.xlsx') -> str:
-        """Tải Google Sheet, bỏ hàng 1, cột 1, lưu dữ liệu và màu nền vào file Excel.
+        Tải Google Sheet, xử lý, và trả về DataFrame dữ liệu, DataFrame màu sắc, và URL.
 
         Args:
-            output_file: Đường dẫn file Excel đầu ra.
+            return_df: Nếu True, sẽ trả về DataFrames thay vì lưu file.
+
+        Returns:
+            Một tuple chứa (data_df, color_df, download_url).
         """
         download_url = ''
         try:
             download_url, html_content = self.fetch_html()
             data, colors = self.parse_html_to_data(html_content)
             data_df, color_df = self.process_data(data, colors)
+
             if data_df is None:
                 logging.warning("Dữ liệu rỗng sau khi xử lý.")
-                print("Dữ liệu rỗng sau khi xử lý.")
-                return download_url
-            self.save_to_excel(data_df, color_df, output_file)
+                return None, None, download_url
+
+            return data_df, color_df, download_url
+
         except Exception as e:
-            logging.error(f"Lỗi khi tải và lưu Google Sheet: {e}")
-            print(f"Lỗi: {e}")
-            print("Kiểm tra xem sheet có công khai hoặc cho phép xem qua link không.")
-        return download_url
+            logging.error(f"Lỗi khi tải và xử lý Google Sheet: {e}")
+            return None, None, download_url

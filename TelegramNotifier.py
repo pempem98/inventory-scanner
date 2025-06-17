@@ -1,8 +1,8 @@
-import time
 import os
-import logging
+import time
 import requests
-from typing import List, Dict, Any
+import logging
+from typing import Dict, Any, List
 
 # Thiết lập logging
 logging.basicConfig(
@@ -13,156 +13,91 @@ logging.basicConfig(
 )
 
 class TelegramNotifier:
-    """Class để gửi tin nhắn Telegram về các căn thêm mới, đã bán và lỗi."""
+    """Class để gửi tin nhắn và tài liệu đến một chat Telegram cụ thể."""
 
-    def __init__(self, workflow_config: Dict[str, Any], proxies: Dict[str, str] = None):
+    def __init__(self, bot_token: str, proxies: Dict[str, str] = None):
         """
         Khởi tạo TelegramNotifier.
 
         Args:
-            workflow_config: Config từ workflow_config.json chứa telegram settings.
+            bot_token: Token của bot Telegram.
             proxies: Dictionary chứa cấu hình proxy (nếu có).
         """
-        self.workflow_config = workflow_config
+        if not bot_token:
+            raise ValueError("Bot token không được để trống.")
+        
+        self.bot_token = bot_token
         self.proxies = proxies
-        self.telegram_config = workflow_config.get('telegram', {})
-        self.bot_token = self.telegram_config.get('bot_token')
-        self.chat_id = self.telegram_config.get('chat_id')
         self.base_url = f"https://api.telegram.org/bot{self.bot_token}"
 
-    def send_document(self, file_path: str) -> None:
-        """Gửi file báo cáo qua Telegram dưới dạng tài liệu.
+    def send_message(self, chat_id: str, message_text: str):
+        """
+        Gửi một tin nhắn văn bản đến một chat_id cụ thể.
 
         Args:
-            file_path: Đường dẫn đến file cần gửi (e.g., Excel report).
+            chat_id: ID của cuộc trò chuyện cần gửi tin nhắn đến.
+            message_text: Nội dung tin nhắn. Hỗ trợ định dạng HTML.
         """
-        if not self.bot_token or not self.chat_id:
-            logging.warning("Thiếu bot_token hoặc chat_id, không gửi file.")
-            return
-
-        if not os.path.exists(file_path):
-            logging.error(f"File {file_path} không tồn tại, không gửi.")
+        if not chat_id:
+            logging.warning("chat_id trống, không thể gửi tin nhắn.")
             return
 
         try:
-            url = f"{self.base_url}/sendDocument"
-            with open(file_path, 'rb') as file:
-                files = {'document': (os.path.basename(file_path), file, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}
-                data = {'chat_id': self.chat_id}
-                response = requests.post(url, data=data, files=files, timeout=30)
-                if response.status_code != 200:
-                    logging.error(f"Gửi file thất bại: {response.text}")
-                else:
-                    logging.info(f"Đã gửi file: {file_path}")
+            url = f"{self.base_url}/sendMessage"
+            payload = {
+                'chat_id': chat_id,
+                'text': message_text,
+                'parse_mode': 'HTML',
+                'disable_web_page_preview': True
+            }
+            response = requests.post(url, json=payload, proxies=self.proxies, timeout=15)
+            
+            if response.status_code == 200:
+                logging.info(f"Đã gửi tin nhắn thành công đến chat_id {chat_id}.")
+            else:
+                logging.error(f"Lỗi khi gửi tin nhắn đến {chat_id}: {response.status_code} - {response.text}")
+                logging.error(f"Nội dung tin nhắn lỗi: {message_text[:200]}...")
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Lỗi RequestException khi gửi tin nhắn đến {chat_id}: {e}")
         except Exception as e:
-            logging.error(f"Lỗi khi gửi file {file_path}: {e}")
+            logging.error(f"Lỗi không xác định khi gửi tin nhắn: {e}")
 
-    def send_message(self, results: List[Dict[str, Any]]=[], messages: List[str]=[]) -> None:
-        """Gửi tin nhắn Telegram với thông tin căn thêm mới, đã bán và lỗi."""
-        if not self.bot_token or not self.chat_id:
-            logging.warning("Thiếu cấu hình Telegram (bot_token hoặc chat_id) trong workflow_config.json.")
-            return
+    def format_message(self, result: Dict[str, Any]) -> str:
+        """
+        Định dạng một tin nhắn chuẩn từ kết quả so sánh đã được gom nhóm.
+        """
+        agent_name = result.get('agent_name', 'Không xác định')
+        project_name = result.get('project_name', 'Không xác định')
+        comparison = result.get('comparison', {})
+        
+        added = sorted(list(set(comparison.get('added', [])))) # Dùng set để loại bỏ trùng lặp
+        removed = sorted(list(set(comparison.get('removed', []))))
+        changed = comparison.get('changed', [])
+        
+        # Chỉ tạo tin nhắn nếu có ít nhất một thay đổi
+        if not added and not removed and not changed:
+            return "" 
 
-        # Tạo nội dung tin nhắn
-        if not messages:
-            for result in results:
-                agent_name = str(result['agent_name'])
-                project_name = str(result['project_name'])
-                message = result.get('message', '')
-                if message:
-                    url = result.get('url', None)
-                    message += f'\n<b>Link:</b> <a href="{url}" target="_blank">{agent_name}_{project_name}</a>'
-                else:
-                    # Ánh xạ project_name thành tên dự án ngắn (như LSB)
-                    project_prefix = self.workflow_config.get('project_prefix', {})
-                    short_project_name = project_name
-                    for prefix, name in project_prefix.items():
-                        if project_name.startswith(prefix):
-                            short_project_name = name
-                            break
+        message = f"🏢 <b>Đại lý:</b> {agent_name}\n"
+        message += f"📋 <b>Dự án:</b> {project_name}\n\n"
 
-                    # Lấy thông tin so sánh
-                    comparison = result.get('comparison', {})
-                    added = comparison.get('added', [])
-                    removed = comparison.get('removed', [])
-                    remaining = comparison.get('remaining', [])
+        if added:
+            added_str = "\n".join([f"<b>{key}</b>" for key in added])
+            message += f"➕ <b>Nhập thêm ({len(added)}):</b>\n<blockquote>{added_str}</blockquote>\n\n"
+        else:
+            message += "➕ <b>Nhập thêm:</b> Không có\n\n"
 
-                    if not added and not removed:
-                        continue
-
-                    if len(removed) > 100:
-                        removed = removed[:100]
-                        removed.append("...")
-
-                    if len(remaining) > 100:
-                        remaining = remaining[:100]
-                        remaining.append("...")
-
-                    message = f"🏢 <b>Đại lý</b>: {agent_name}\n"
-                    message += f"📋 <b>Dự án</b>: {short_project_name}\n\n"
-                    if added:
-                        message += "➕ <b>Nhập thêm</b>:\n<blockquote>" + "\n".join([f"<b>{key}</b>" for key in added]) + "</blockquote>\n\n"
-                    else:
-                        message += "➕ <b>Nhập thêm</b>: Không có\n\n"
-                    if removed:
-                        message += "✅ <b>Đã bán</b>:\n<blockquote>" + "\n".join([f"<b>{key}</b>" for key in removed]) + "</blockquote>"
-                        if remaining:
-                            message += "\n\n📊 <b>Quỹ căn hiện tại</b>:\n<blockquote expandable>" + "\n".join([f"<b>{key}</b>" for key in remaining]) + "</blockquote>"
-                        else:
-                            message += "\n\n📊 <b>Quỹ căn hiện tại</b>: Không còn (Lỗi E1?)"
-                    else:
-                        message += "✅ <b>Đã bán</b>: Không có"
-
-                messages.append(message)
-
-        # Gửi từng tin nhắn
-        for message in messages:
-            try:
-                url = f"{self.base_url}/sendMessage"
-                payload = {
-                    'chat_id': self.chat_id,
-                    'text': message,
-                    'parse_mode': 'HTML',
-                    'disable_web_page_preview': True
-                }
-                response = requests.post(url, json=payload, proxies=self.proxies)
-                if response.status_code == 200:
-                    logging.info(f"Đã gửi tin nhắn Telegram: {message[:100]}...")
-                else:
-                    logging.error(f"Lỗi khi gửi tin nhắn Telegram: {response.text}")
-                    logging.error(message)
-            except Exception as e:
-                logging.error(f"Lỗi khi gửi tin nhắn Telegram: {e}")
-            time.sleep(1)  # Đợi 1 giây giữa các tin nhắn để tránh bị chặn
-
-    def notify(self, results: Dict[str, Dict[str, Dict[str, List]]], report_file: str) -> None:
-        """Gửi thông báo Telegram với kết quả so sánh và đường dẫn file báo cáo."""
-        if not self.bot_token or not self.chat_id:
-            logging.warning("Thiếu cấu hình Telegram (bot_token hoặc chat_id) trong workflow_config.json.")
-            return
-
-        # Chuyển đổi results sang định dạng danh sách
-        converted_results = []
-        for result in results:
-            agent_name = result.get('agent_name', None)
-            project_name = result.get('project_name', None)
-            comparison = result.get('comparison', {})
-            converted_results.append({
-                'agent_name': agent_name,
-                'project_name': project_name,
-                'comparison': {
-                    'added': [item for item in comparison.get('added', []) if item and len(item) > 0],
-                    'removed': [item for item in comparison.get('removed', []) if item and len(item) > 0],
-                    'changed': comparison.get('changed', []),
-                    'remaining': [item for item in comparison.get('remaining', []) if item and len(item) > 0]
-                },
-                'message': result.get('message', None),
-                'url': result.get('url', None),
-            })
-
-        # Gửi thông báo chính
-        self.send_message(converted_results)
-
-        # Gửi đường dẫn file báo cáo
-        if report_file:
-            self.send_document(file_path=report_file)
+        if removed:
+            removed_str = "\n".join([f"<b>{key}</b>" for key in removed])
+            message += f"✅ <b>Đã bán ({len(removed)}):</b>\n<blockquote>{removed_str}</blockquote>\n\n"
+        else:
+            message += "✅ <b>Đã bán:</b> Không có\n\n"
+            
+        if changed:
+            changed_str = "\n".join([f"<b>{c['key']}</b>: {c['old']} → {c['new']}" for c in changed])
+            message += f"✏️ <b>Thay đổi giá ({len(changed)}):</b>\n<blockquote>{changed_str}</blockquote>"
+        else:
+            message += "✏️ <b>Thay đổi giá:</b> Không có"
+            
+        return message.strip()
