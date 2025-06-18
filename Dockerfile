@@ -1,26 +1,29 @@
 # Sử dụng image Python chính thức
 FROM python:3.9-slim
 
-# Đặt thư mục làm việc
+# Đặt thư mục làm việc trong container
 WORKDIR /app
 
-# Cài đặt các gói hệ thống cần thiết cho requests-kerberos
+# Cài đặt các gói hệ thống cần thiết
 RUN apt-get update && apt-get install -y \
     gcc \
     libkrb5-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Sao chép file requirements.txt và cài đặt dependencies
+# Sao chép file requirements.txt trước để tận dụng cache của Docker
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Sao chép toàn bộ project vào container
+# Sao chép toàn bộ mã nguồn của project vào thư mục làm việc
 COPY . .
 
-# Đặt biến môi trường cho proxy
+# Đặt biến môi trường cho proxy (giữ nguyên)
 ENV HTTP_PROXY=http://rb-proxy-apac.bosch.com:8080
 ENV HTTPS_PROXY=http://rb-proxy-apac.bosch.com:8080
 ENV NO_PROXY=localhost,127.0.0.1
 
-# Lệnh mặc định để chạy ExcelBackupExtractor.py
-CMD ["python", "ExcelBackupExtractor.py"]
+# Cấp quyền thực thi cho entry point script
+RUN chmod +x /app/entry_point.sh
+
+# Lệnh mặc định để chạy ứng dụng
+ENTRYPOINT ["/app/entry_point.sh"]
