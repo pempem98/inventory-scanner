@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'verbose_name': 'Đại lý',
-                'verbose_name_plural': 'Các Đại lý',
+                'verbose_name_plural': 'Danh sách đại lý',
             },
         ),
         migrations.CreateModel(
@@ -41,8 +41,8 @@ class Migration(migrations.Migration):
                 ('agent', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='management.agent', verbose_name='Đại lý')),
             ],
             options={
-                'verbose_name': 'Cấu hình Dự án',
-                'verbose_name_plural': 'Các Cấu hình Dự án',
+                'verbose_name': 'Đại lý & Dự án',
+                'verbose_name_plural': 'Danh sách các dự án',
             },
         ),
     ]

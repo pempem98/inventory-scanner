@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Cấu hình ---
-WORKSPACE="${WORKDIR:-/home/ubuntu/workspace/sale-admin-toolkit}"
+WORKSPACE="/Users/lth_dq_lu/Desktop/workspace/sale-admin-toolkit/worker"
 
 # --- Bắt đầu Script ---
 echo "-------------------------------------------"
@@ -29,11 +29,12 @@ echo "Đang chạy Sale Admin Inventory Scanner (SAIS)..."
 DATETIME=$(date +"%Y%m%d_%H%M%S")
 LOG_DIR="logs/$DATETIME"
 mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/runtime.log"
+LOG_FILE="$LOG_DIR/stdout.log"
 
 echo "File log sẽ được lưu tại: $LOG_FILE"
 
 python3 main.py >> "$LOG_FILE" 2>&1
+mv runtime.log "$LOG_DIR"
 
 # Kiểm tra mã thoát của lệnh vừa rồi
 if [ $? -eq 0 ]; then

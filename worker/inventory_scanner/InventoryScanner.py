@@ -33,7 +33,8 @@ class InventoryScanner:
             bot_token: Token của bot Telegram để sử dụng cho việc thông báo.
             proxies: Cấu hình proxy (nếu có).
         """
-        self.db_manager = DatabaseManager()
+        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "app.db")
+        self.db_manager = DatabaseManager(db_file=db_path)
         self.proxies = proxies
         # Khởi tạo Notifier một lần để tái sử dụng
         if bot_token:
@@ -311,7 +312,7 @@ class InventoryScanner:
             if message:
                 print(f"    -> Gửi thông báo cho: {agent_name} - {project_name}")
                 self.notifier.send_message(chat_id, message)
-                time.sleep(1) # Tạm dừng giữa các tin nhắn
+                time.sleep(3) # Tạm dừng giữa các tin nhắn
         
         self.db_manager.close()
         print("\n✅ Hoàn thành tất cả các tác vụ.")
