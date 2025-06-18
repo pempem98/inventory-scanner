@@ -2,14 +2,9 @@ __pycache__
 .venv
 .vscode
 venv
-backup
-current
-predecessor
-extracted_data
-extracted_removed
-reports
 build
 dist
+*logs*
 *.pyc
 *.pyo
 *.pyd

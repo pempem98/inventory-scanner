@@ -1,6 +1,7 @@
 import sqlite3
 import logging
 import json
+import datetime
 from typing import List, Optional, Any, Dict
 
 # Thiết lập logging
@@ -45,7 +46,7 @@ class DatabaseManager:
         try:
             cursor = self.conn.cursor()
             cursor.execute("""
-                SELECT data FROM snapshots
+                SELECT data FROM management_snapshot
                 WHERE project_config_id = ?
                 ORDER BY timestamp DESC
                 LIMIT 1;
@@ -60,10 +61,11 @@ class DatabaseManager:
         """Thêm một snapshot mới cho một cấu hình dự án."""
         try:
             cursor = self.conn.cursor()
+            current_timestamp = datetime.datetime.now()
             cursor.execute("""
-                INSERT INTO snapshots (project_config_id, data)
-                VALUES (?, ?);
-            """, (project_config_id, json.dumps(data, ensure_ascii=False)))
+                INSERT INTO management_snapshot (timestamp, project_config_id, data)
+                VALUES (?, ?, ?);
+            """, (current_timestamp, project_config_id, json.dumps(data, ensure_ascii=False)))
             self.conn.commit()
             logging.info(f"Đã thêm snapshot mới cho project_config_id {project_config_id}")
         except sqlite3.Error as e:

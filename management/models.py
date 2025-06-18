@@ -9,7 +9,7 @@ class Agent(models.Model):
 
     class Meta:
         verbose_name = "Đại lý"
-        verbose_name_plural = "Các Đại lý"
+        verbose_name_plural = "Danh sách đại lý"
 
 class ProjectConfig(models.Model):
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, verbose_name="Đại lý")
@@ -33,5 +33,30 @@ class ProjectConfig(models.Model):
         return f"{self.agent.name} - {self.project_name}"
 
     class Meta:
-        verbose_name = "Cấu hình Dự án"
-        verbose_name_plural = "Các Cấu hình Dự án"
+        verbose_name = "Đại lý & Dự án"
+        verbose_name_plural = "Danh sách các dự án"
+
+# --- BẮT ĐẦU MODEL MỚI ---
+# Model này được tạo dựa trên schema SQL bạn cung cấp.
+class Snapshot(models.Model):
+    # Django tự động tạo trường 'id' tương ứng với 'id INTEGER PRIMARY KEY AUTOINCREMENT'
+
+    # 'project_config_id' và FOREIGN KEY -> models.ForeignKey
+    project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, verbose_name="Đại lý & Dự án")
+
+    # 'timestamp DATETIME DEFAULT CURRENT_TIMESTAMP' -> models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian tạo")
+
+    # 'data TEXT NOT NULL' -> models.TextField
+    data = models.TextField(verbose_name="Dữ liệu snapshot")
+
+    def __str__(self):
+        # Hiển thị một chuỗi đại diện hữu ích trong trang admin
+        return f"Snapshot của '{self.project_config}' lúc {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+
+    class Meta:
+        verbose_name = "Bản ghi"
+        verbose_name_plural = "Bản ghi quỹ căn hộ"
+        # Sắp xếp các bản ghi theo thời gian, cái mới nhất sẽ ở trên cùng
+        ordering = ['-timestamp']
+# --- KẾT THÚC MODEL MỚI ---
