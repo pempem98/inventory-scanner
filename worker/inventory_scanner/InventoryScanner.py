@@ -54,28 +54,22 @@ class InventoryScanner:
             logging.error(f"Dự án {config['project_name']} không có cấu hình cột (column mappings) nào.")
             return None
 
-        # 1. Tìm cấu hình của cột được đánh dấu là định danh
         identifier_map = next((m for m in mappings if m.get('is_identifier')), None)
-        
         if not identifier_map:
             logging.error(f"Dự án {config['project_name']} không có cột nào được đánh dấu là 'is_identifier: true'.")
             return None
 
-        # 2. Tìm vị trí hàng header
         header_row_idx = -1
-        # Ưu tiên chỉ số hàng được cấu hình sẵn trong DB
         config_header_idx = config.get('header_row_index')
         if config_header_idx and 0 < int(config_header_idx) <= len(df):
             header_row_idx = int(config_header_idx) - 1
         else:
-            # Nếu không, tự động quét 10 dòng đầu để tìm header dựa vào các alias của cột định danh
             try:
-                # 'aliases' được lưu dạng chuỗi JSON trong DB, cần được parse
                 identifier_aliases = {str(alias).lower() for alias in json.loads(identifier_map.get('aliases', '[]'))}
                 if not identifier_aliases:
                     logging.error(f"Cột định danh '{identifier_map['internal_name']}' không có 'aliases' nào được cấu hình.")
                     return None
-                
+
                 for i, row in df.head(10).iterrows():
                     row_values = {str(val).strip().lower() for val in row.dropna().values}
                     if not identifier_aliases.isdisjoint(row_values):
@@ -89,35 +83,40 @@ class InventoryScanner:
             logging.error(f"Không thể tự động tìm thấy hàng header cho dự án {config['project_name']}.")
             return None
 
-        header_content = [str(h).strip().lower() for h in df.iloc[header_row_idx].tolist()]
+        def normalize_column_name(name: str):
+            normalized_name = str(name).strip().lower() \
+                .replace(' ', '').replace('\n', '').replace(')', '').replace('(', '') \
+                .replace('tổng', '').replace('full', '').replace('bán', '').replace('bao', '') \
+                .replace('&', '').replace('và', '').replace(',', '') \
+                .replace('kpbt', '').replace('có', 'gồm').replace('sau', 'gồm')
+            return normalized_name
 
-        # 3. Tìm vị trí (index) của TẤT CẢ các cột trong mapping
+        header_content = [normalize_column_name(h) for h in df.iloc[header_row_idx].tolist()]
+
         column_indices = {}
         for mapping in mappings:
             internal_key = mapping['internal_name']
             col_idx = None
             try:
-                aliases = [str(alias).lower() for alias in json.loads(mapping.get('aliases', '[]'))]
+                aliases = [normalize_column_name(alias) for alias in json.loads(mapping.get('aliases', '[]'))]
                 for alias in aliases:
                     try:
                         col_idx = header_content.index(alias)
-                        break  # Dừng lại khi tìm thấy alias đầu tiên khớp
+                        break
                     except ValueError:
-                        continue # Thử alias tiếp theo
+                        continue
                 column_indices[internal_key] = col_idx
             except json.JSONDecodeError:
                 logging.error(f"Lỗi JSON trong 'aliases' của cột '{internal_key}' cho dự án {config['project_name']}.")
                 column_indices[internal_key] = None
 
-        # 4. Kiểm tra lại xem cột định danh có thực sự được tìm thấy trong header không
         identifier_key_name = identifier_map['internal_name']
         if column_indices.get(identifier_key_name) is None:
             logging.error(f"Không tìm thấy cột định danh '{identifier_key_name}' trong header của dự án {config['project_name']}.")
             return None
 
         logging.info(f"Đã xác định header ở dòng {header_row_idx + 1}. Các chỉ số cột: {column_indices}")
-        
-        # 5. Trả về cấu trúc thông tin mới, linh hoạt hơn
+
         return {
             "header_row_idx": header_row_idx,
             "identifier_key": identifier_key_name,
@@ -126,7 +125,6 @@ class InventoryScanner:
         }
 
     def _normalize_and_validate_key(self, key: Any, prefixes: Optional[List[str]]) -> Optional[str]:
-        # (Hàm này giữ nguyên, không thay đổi)
         if not isinstance(key, (str, int, float)): return None
         clean_key = str(key).strip().upper()
         if not clean_key: return None
@@ -144,7 +142,7 @@ class InventoryScanner:
         identifier_key = header_info['identifier_key']
         column_indices = header_info['column_indices']
         identifier_col_idx = column_indices[identifier_key]
-        
+
         invalid_colors_json = config.get('invalid_colors', '[]')
         invalid_colors = {c.lower() for c in json.loads(invalid_colors_json)}
 
@@ -166,14 +164,12 @@ class InventoryScanner:
                         continue
                 except (KeyError, IndexError):
                     pass
-                
-                # Tạo một dictionary để lưu tất cả dữ liệu của hàng này
+
                 row_data = {}
-                # Lặp qua tất cả các cột đã được cấu hình và tìm thấy
                 for key, col_idx in column_indices.items():
                     if key == identifier_key or col_idx is None:
-                        continue # Bỏ qua cột định danh và các cột không tìm thấy
-                    
+                        continue
+
                     value = row.iloc[col_idx]
                     row_data[key] = str(value) if pd.notna(value) else None
 
@@ -183,7 +179,6 @@ class InventoryScanner:
 
     def _compare_snapshots(self, new_snapshot: Dict, old_snapshot: Dict) -> Dict[str, List]:
         """
-        --- ĐÃ NÂNG CẤP ---
         So sánh hai snapshot, bao gồm tất cả các trường dữ liệu (price, policy, v.v.).
         """
         new_keys = set(new_snapshot.keys())
@@ -191,14 +186,13 @@ class InventoryScanner:
 
         added = sorted(list(new_keys - old_keys))
         removed = sorted(list(old_keys - new_keys))
-        
+
         changed = []
         common_keys = new_keys.intersection(old_keys)
         for key in common_keys:
             old_data = old_snapshot.get(key, {})
             new_data = new_snapshot.get(key, {})
-            
-            # Tìm tất cả các trường có thể có trong cả hai snapshot
+
             all_fields = set(old_data.keys()) | set(new_data.keys())
 
             for field in all_fields:
@@ -208,26 +202,23 @@ class InventoryScanner:
                 old_is_nan = pd.isna(old_value)
                 new_is_nan = pd.isna(new_value)
 
-                # Nếu cả hai đều rỗng thì coi như không đổi
                 if old_is_nan and new_is_nan:
                     continue
 
-                # Nếu giá trị khác nhau (và không phải cả hai đều rỗng)
                 if old_value != new_value:
-                     changed.append({
+                    changed.append({
                         "key": key,
                         "field": field,
                         "old": old_value,
                         "new": new_value
-                     })
+                    })
 
         return {'added': added, 'removed': removed, 'changed': changed}
 
     def run(self):
-        # (Hàm này giữ nguyên, không thay đổi)
         logging.info("="*50)
         logging.info("BẮT ĐẦU PHIÊN LÀM VIỆC MỚI")
-        
+
         active_configs = self.db_manager.get_active_configs()
         if not active_configs:
             logging.warning("Không có cấu hình nào đang hoạt động trong database. Kết thúc.")
@@ -239,7 +230,7 @@ class InventoryScanner:
             agent_name = config['agent_name']
             project_name = config['project_name']
             config_id = config['id']
-            
+
             print(f"\n▶️  Đang xử lý: {agent_name} - {project_name} (ID: {config_id})")
 
             try:
@@ -260,11 +251,11 @@ class InventoryScanner:
                 if not header_info:
                     logging.error(f"Không xác định được header/cột cho ID {config_id}.")
                     continue
-                
+
                 new_snapshot = self._extract_snapshot_data(current_df, color_df, header_info, config)
 
                 old_snapshot = self.db_manager.get_latest_snapshot(config_id)
-                
+
                 if old_snapshot is not None:
                     comparison = self._compare_snapshots(new_snapshot, old_snapshot)
                     print(f"    -> So sánh hoàn tất: {len(comparison['added'])} thêm, {len(comparison['removed'])} bán, {len(comparison['changed'])} đổi.")
@@ -292,7 +283,7 @@ class InventoryScanner:
 
         for result in all_individual_results:
             key = (result['agent_name'], result['project_name'])
-            
+
             aggregated_results[key]['added'].extend(result['comparison']['added'])
             aggregated_results[key]['removed'].extend(result['comparison']['removed'])
             aggregated_results[key]['changed'].extend(result['comparison']['changed'])
@@ -318,14 +309,14 @@ class InventoryScanner:
                     'changed': data['changed']
                 }
             }
-            
+
             message = self.notifier.format_message(final_result_for_message)
-            
+
             if message:
                 print(f"    -> Gửi thông báo cho: {agent_name} - {project_name}")
                 self.notifier.send_message(chat_id, message)
                 time.sleep(3)
-        
+
         self.db_manager.close()
         print("\n✅ Hoàn thành tất cả các tác vụ.")
 

@@ -32,7 +32,7 @@ class ProjectConfig(models.Model):
 
     # Cấu hình tìm kiếm và xác thực
     header_row_index = models.PositiveIntegerField(blank=True, null=True, verbose_name="Dòng header (số)")
-    key_prefixes = models.JSONField(default=list, verbose_name="Các tiền tố của Key")
+    key_prefixes = models.JSONField(default=list, verbose_name="Các tiền tố của mã căn hộ")
     invalid_colors = models.JSONField(default=get_default_invalid_colors, blank=True, verbose_name="Các màu không hợp lệ")
 
     def __str__(self):
@@ -49,34 +49,23 @@ class ProjectConfig(models.Model):
         verbose_name = "Đại lý & Dự án"
         verbose_name_plural = "Danh sách các dự án"
 
-# --- BẮT ĐẦU MODEL MỚI ---
-# Model này được tạo dựa trên schema SQL bạn cung cấp.
 class Snapshot(models.Model):
-    # Django tự động tạo trường 'id' tương ứng với 'id INTEGER PRIMARY KEY AUTOINCREMENT'
-
-    # 'project_config_id' và FOREIGN KEY -> models.ForeignKey
     project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, verbose_name="Đại lý & Dự án")
-
-    # 'timestamp DATETIME DEFAULT CURRENT_TIMESTAMP' -> models.DateTimeField(auto_now_add=True)
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian tạo")
-
-    # 'data TEXT NOT NULL' -> models.TextField
-    data = models.TextField(verbose_name="Dữ liệu snapshot")
+    data = models.TextField(verbose_name="Bản ghi quỹ căn hộ")
 
     def __str__(self):
-        # Hiển thị một chuỗi đại diện hữu ích trong trang admin
         return f"Snapshot của '{self.project_config}' lúc {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
 
     class Meta:
-        verbose_name = "Bản ghi"
-        verbose_name_plural = "Bản ghi quỹ căn hộ"
-        # Sắp xếp các bản ghi theo thời gian, cái mới nhất sẽ ở trên cùng
+        verbose_name = "Bản ghi quỹ căn hộ"
+        verbose_name_plural = "Danh sách bản ghi quỹ căn hộ"
         ordering = ['-timestamp']
 
 
 class ScheduledTask(models.Model):
     name = models.CharField(max_length=200, unique=True, verbose_name="Tên tác vụ")
-    task = models.CharField(max_length=255, help_text="Đường dẫn đến script, ví dụ: worker/run.sh", verbose_name="Script")
+    task = models.CharField(max_length=255, help_text="Đường dẫn đến script, ví dụ: worker/run.sh", verbose_name="Đường dẫn Script")
     cron_schedule = models.CharField(max_length=100, help_text="Định dạng Crontab, ví dụ: '*/5 * * * *' để chạy mỗi 5 phút", verbose_name="Lịch chạy (Cron)")
     is_active = models.BooleanField(default=True, verbose_name="Đang hoạt động")
     last_run_at = models.DateTimeField(null=True, blank=True, editable=False, verbose_name="Lần chạy cuối")
@@ -90,20 +79,18 @@ class ScheduledTask(models.Model):
 
 
 class ColumnMapping(models.Model):
-    project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, related_name="column_mappings", verbose_name="Cấu hình Dự án")
-    
-    internal_name = models.CharField(max_length=50, verbose_name="Tên nội bộ", help_text="Tên dùng trong code, ví dụ: 'key', 'price', 'policy'. Viết liền, không dấu.")
-    display_name = models.CharField(max_length=100, verbose_name="Tên hiển thị", help_text="Tên sẽ hiển thị trong các thông báo.")
-    aliases = models.JSONField(default=list, verbose_name="Các tên cột có thể có", help_text="Danh sách các tên cột trong file nguồn, dạng JSON list.")
+    project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, related_name="column_mappings", verbose_name="Cấu hình Dự án")    
+    internal_name = models.CharField(max_length=50, verbose_name="Tên", help_text="Tên dùng trong code, ví dụ: 'key', 'price', 'policy'. Viết liền, không dấu.")
+    display_name = models.CharField(max_length=100, verbose_name="Mô tả", help_text="Tên sẽ hiển thị trong các thông báo.")
+    aliases = models.JSONField(default=list, verbose_name="Các tên tiêu đề có thể có", help_text="Danh sách các tên tiêu đề trong file nguồn, dạng JSON list.")
     is_identifier = models.BooleanField(default=False, verbose_name="Là cột định danh?", help_text="Tích vào đây nếu đây là cột chứa mã định danh duy nhất (ví dụ: Mã căn hộ).")
 
     def __str__(self):
         return f"{self.display_name} (cho {self.project_config.project_name})"
 
     class Meta:
-        verbose_name = "Ánh xạ Cột"
-        verbose_name_plural = "Các Ánh xạ Cột"
-        # Đảm bảo mỗi project chỉ có 1 internal_name duy nhất
+        verbose_name = "Ánh xạ Tiêu đề"
+        verbose_name_plural = "Các ánh xạ Tiêu đề"
         unique_together = ('project_config', 'internal_name')
 
 
@@ -115,7 +102,11 @@ def create_default_column_mapping(sender, instance, created, **kwargs):
             internal_name='key',
             defaults={
                 "display_name": "Mã căn hộ",
-                "aliases": ["Mã căn", "Mã căn hộ"],
+                "aliases": [
+                    "Mã",
+                    "Mã căn",
+                    "Mã căn hộ",
+                ],
                 "is_identifier": True
             }
         )
@@ -123,11 +114,35 @@ def create_default_column_mapping(sender, instance, created, **kwargs):
             project_config=instance,
             internal_name='price',
             defaults={
-                "display_name": "Giá",
+                "display_name": "Giá TTS",
                 "aliases": [
-                    "Giá chưa VAT và KPBT",
-                    "Tổng giá chưa VAT & KPBT",
-                    "Giá Thuần (chưa VAT và KPBT)"
+                    'Giá TTS',
+                    'Giá TTS',
+                    'Giá thanh toán sớm',
+                    'Giá TTS tạm tính',
+                    'Gía TTS (tạm tinh)',
+                    'Giá TTS (tạm tính)',
+                    'Giá TTS sau CK',
+                    'Giá TTS (gồm VAT+KPBT)',
+                    'Giá TTS (tạm tính) (đã gồm VAT+KPBT)'
+                    'TTS',
+                    'TTS(*)',
+                    'TTS tạm tính',
+                    'TTS (tạm tính)',
+                    'TTS (tạm tính)(đã bao gồm VAT+KPBT)',
+                ],
+                "is_identifier": False
+            }
+        )
+        ColumnMapping.objects.get_or_create(
+            project_config=instance,
+            internal_name='policy',
+            defaults={
+                "display_name": "CSBH",
+                "aliases": [
+                    'CSBH',
+                    'CSBH Ngày',
+                    'Chính sách',
                 ],
                 "is_identifier": False
             }

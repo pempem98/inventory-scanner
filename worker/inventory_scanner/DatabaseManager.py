@@ -83,7 +83,6 @@ class DatabaseManager:
                 WHERE project_config_id = ?
             """, (project_config_id,))
             mappings = cursor.fetchall()
-            # Chuyển đổi từ tuple sang dict để dễ sử dụng
             return [dict(mapping) for mapping in mappings]
         except sqlite3.Error as e:
             logging.error(f"Không thể lấy column mappings cho project {project_config_id}: {e}")

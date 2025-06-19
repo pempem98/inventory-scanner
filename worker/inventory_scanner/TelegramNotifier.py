@@ -71,7 +71,7 @@ class TelegramNotifier:
         project_name = result.get('project_name', 'Không xác định')
         comparison = result.get('comparison', {})
         
-        added = sorted(list(set(comparison.get('added', [])))) # Dùng set để loại bỏ trùng lặp
+        added = sorted(list(set(comparison.get('added', []))))
         removed = sorted(list(set(comparison.get('removed', []))))
         changed = comparison.get('changed', [])
         
@@ -96,8 +96,8 @@ class TelegramNotifier:
             
         if changed:
             changed_str = "\n".join([f"<b>{c['key']}</b>: {c['old']} → {c['new']}" for c in changed])
-            message += f"✏️ <b>Thay đổi giá ({len(changed)}):</b>\n<blockquote>{changed_str}</blockquote>"
+            message += f"✏️ <b>Thay đổi ({len(changed)}):</b>\n<blockquote>{changed_str}</blockquote>"
         else:
-            message += "✏️ <b>Thay đổi giá:</b> Không có"
+            message += "✏️ <b>Thay đổi:</b> Không có"
             
         return message.strip()
