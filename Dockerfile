@@ -1,5 +1,5 @@
 # Sử dụng image Python chính thức
-FROM python:3.9-slim
+FROM python:3.12.6
 
 # Đặt thư mục làm việc trong container
 WORKDIR /app
@@ -18,9 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Đặt biến môi trường cho proxy (giữ nguyên)
-ENV HTTP_PROXY=http://rb-proxy-apac.bosch.com:8080
-ENV HTTPS_PROXY=http://rb-proxy-apac.bosch.com:8080
-ENV NO_PROXY=localhost,127.0.0.1
+# ENV HTTP_PROXY=http://rb-proxy-apac.bosch.com:8080
+# ENV HTTPS_PROXY=http://rb-proxy-apac.bosch.com:8080
+# ENV NO_PROXY=localhost,127.0.0.1
 
 # Cấp quyền thực thi cho entry point script
 RUN chmod +x /app/entry_point.sh
