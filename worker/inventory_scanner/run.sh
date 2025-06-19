@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Cấu hình ---
-WORKSPACE="/Users/lth_dq_lu/Desktop/workspace/sale-admin-toolkit/worker"
+WORKSPACE="/Users/lth_dq_lu/Desktop/workspace/sale-admin-toolkit/worker/inventory_scanner"
 
 # --- Bắt đầu Script ---
 echo "-------------------------------------------"
