@@ -72,6 +72,23 @@ class DatabaseManager:
             logging.error(f"Lỗi khi thêm snapshot: {e}")
             self.conn.rollback()
 
+    def get_column_mappings(self, project_config_id):
+        """Lấy tất cả các column mappings cho một project config ID."""
+        if not self.conn: return []
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT internal_name, display_name, aliases, is_identifier
+                FROM management_columnmapping
+                WHERE project_config_id = ?
+            """, (project_config_id,))
+            mappings = cursor.fetchall()
+            # Chuyển đổi từ tuple sang dict để dễ sử dụng
+            return [dict(mapping) for mapping in mappings]
+        except sqlite3.Error as e:
+            logging.error(f"Không thể lấy column mappings cho project {project_config_id}: {e}")
+            return []
+
     def close(self):
         """Đóng kết nối database."""
         if self.conn:

@@ -1,8 +1,9 @@
-from django.contrib import admin
-from .models import Agent, ProjectConfig, Snapshot
 import json
+from django.contrib import admin
 from django.utils.html import format_html, escape
 from django.utils.safestring import mark_safe
+
+from .models import Agent, ProjectConfig, Snapshot, ScheduledTask, ColumnMapping
 
 
 @admin.register(Agent)
@@ -12,19 +13,31 @@ class AgentAdmin(admin.ModelAdmin):
     list_display_links = ('id', 'name')
 
 
+class ColumnMappingInline(admin.TabularInline):
+    model = ColumnMapping
+    extra = 0
+    fields = ('internal_name', 'display_name', 'aliases', 'is_identifier')
+    verbose_name = "Cột tùy chỉnh"
+    verbose_name_plural = "Các cột tùy chỉnh"
+
+
 @admin.register(ProjectConfig)
 class ProjectConfigAdmin(admin.ModelAdmin):
     list_display = ('id', 'agent', 'project_name', 'spreadsheet_id', 'html_url', 'gid', 'is_active')
     list_filter = ('is_active', 'agent', 'project_name')
     search_fields = ('project_name', 'agent__name', 'spreadsheet_id', 'html_url', 'gid')
     ordering = ('agent', 'project_name')
-    list_display_links = ('id', 'project_name')
+    list_display_links = ('id',)
     fieldsets = (
         ('Thông tin chung', {'fields': ('agent', 'project_name', 'is_active')}),
         ('Nguồn dữ liệu', {'fields': ('spreadsheet_id', 'gid', 'html_url')}),
-        ('Cấu hình xử lý', {'classes': ('collapse',), 'fields': ('header_row_index', 'key_column_aliases', 'price_column_aliases', 'key_prefixes', 'invalid_colors')}),
+        ('Cấu hình xử lý', {
+            'classes': (),
+            'fields': ('header_row_index', 'key_prefixes', 'invalid_colors')
+        }),
         ('Thông báo', {'fields': ('telegram_chat_id',)})
     )
+    inlines = [ColumnMappingInline]
 
 
 @admin.register(Snapshot)
@@ -73,7 +86,7 @@ class SnapshotAdmin(admin.ModelAdmin):
         except Exception:
             return "Lỗi không xác định"
         
-    @admin.display(description="Dữ liệu Snapshot (dạng bảng)")
+    @admin.display(description="Quỹ căn hộ (dạng bảng)")
     def display_pretty_data(self, obj):
         """
         Định dạng chuỗi JSON thành một bảng HTML để dễ đọc.
@@ -119,3 +132,11 @@ class SnapshotAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+    
+
+@admin.register(ScheduledTask)
+class ScheduledTaskAdmin(admin.ModelAdmin):
+    list_display = ('name', 'task', 'cron_schedule', 'is_active', 'last_run_at')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'task')
+    readonly_fields = ('last_run_at',)

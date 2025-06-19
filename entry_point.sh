@@ -1,0 +1,1 @@
+echo TEST_ENTRY_POINT
