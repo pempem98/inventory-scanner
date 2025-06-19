@@ -86,9 +86,7 @@ class InventoryScanner:
         def normalize_column_name(name: str):
             normalized_name = str(name).strip().lower() \
                 .replace(' ', '').replace('\n', '').replace(')', '').replace('(', '') \
-                .replace('tổng', '').replace('full', '').replace('bán', '').replace('bao', '') \
-                .replace('&', '').replace('và', '').replace(',', '') \
-                .replace('kpbt', '').replace('có', 'gồm').replace('sau', 'gồm')
+                .replace('&', '+').replace('và', '+').replace(',', '+')
             return normalized_name
 
         header_content = [normalize_column_name(h) for h in df.iloc[header_row_idx].tolist()]
