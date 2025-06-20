@@ -4,13 +4,7 @@ import json
 import datetime
 from typing import List, Optional, Any, Dict
 
-# Thiết lập logging
-logging.basicConfig(
-    filename='runtime.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    encoding='utf-8'
-)
+logger = logging.getLogger(__name__)
 
 class DatabaseManager:
     """Quản lý tất cả các tương tác với cơ sở dữ liệu SQLite."""
@@ -21,9 +15,9 @@ class DatabaseManager:
         try:
             self.conn = sqlite3.connect(self.db_file)
             self.conn.row_factory = sqlite3.Row
-            logging.info(f"Đã kết nối thành công đến database: {self.db_file}")
+            logger.info(f"Đã kết nối thành công đến database: {self.db_file}")
         except sqlite3.Error as e:
-            logging.error(f"Lỗi khi kết nối đến database: {e}")
+            logger.error(f"Lỗi khi kết nối đến database: {e}")
             raise
 
     def get_active_configs(self) -> List[sqlite3.Row]:
@@ -38,7 +32,7 @@ class DatabaseManager:
             """)
             return cursor.fetchall()
         except sqlite3.Error as e:
-            logging.error(f"Lỗi khi lấy danh sách cấu hình: {e}")
+            logger.error(f"Lỗi khi lấy danh sách cấu hình: {e}")
             return []
 
     def get_latest_snapshot(self, project_config_id: int) -> Optional[Dict[str, Any]]:
@@ -54,7 +48,7 @@ class DatabaseManager:
             result = cursor.fetchone()
             return json.loads(result['data']) if result else None
         except (sqlite3.Error, json.JSONDecodeError) as e:
-            logging.error(f"Lỗi khi lấy snapshot gần nhất cho project_config_id {project_config_id}: {e}")
+            logger.error(f"Lỗi khi lấy snapshot gần nhất cho project_config_id {project_config_id}: {e}")
             return None
 
     def add_snapshot(self, project_config_id: int, data: Dict[str, Any]):
@@ -67,9 +61,9 @@ class DatabaseManager:
                 VALUES (?, ?, ?);
             """, (current_timestamp, project_config_id, json.dumps(data, ensure_ascii=False)))
             self.conn.commit()
-            logging.info(f"Đã thêm snapshot mới cho project_config_id {project_config_id}")
+            logger.info(f"Đã thêm snapshot mới cho project_config_id {project_config_id}")
         except sqlite3.Error as e:
-            logging.error(f"Lỗi khi thêm snapshot: {e}")
+            logger.error(f"Lỗi khi thêm snapshot: {e}")
             self.conn.rollback()
 
     def get_column_mappings(self, project_config_id):
@@ -85,7 +79,7 @@ class DatabaseManager:
             mappings = cursor.fetchall()
             return [dict(mapping) for mapping in mappings]
         except sqlite3.Error as e:
-            logging.error(f"Không thể lấy column mappings cho project {project_config_id}: {e}")
+            logger.error(f"Không thể lấy column mappings cho project {project_config_id}: {e}")
             return []
 
     def close(self):

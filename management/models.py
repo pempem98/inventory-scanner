@@ -22,7 +22,7 @@ class Agent(models.Model):
 class ProjectConfig(models.Model):
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, verbose_name="Đại lý")
     project_name = models.CharField(max_length=100, verbose_name="Tên dự án")
-    
+
     # Thông tin cấu hình
     spreadsheet_id = models.CharField(max_length=200, blank=True, null=True)
     gid = models.CharField(max_length=100)
@@ -37,7 +37,7 @@ class ProjectConfig(models.Model):
 
     def __str__(self):
         return f"{self.agent.name} - {self.project_name}"
-    
+
     def clean(self):
         super().clean()
         if not self.spreadsheet_id and not self.html_url:
@@ -62,24 +62,8 @@ class Snapshot(models.Model):
         verbose_name_plural = "Danh sách bản ghi quỹ căn hộ"
         ordering = ['-timestamp']
 
-
-class ScheduledTask(models.Model):
-    name = models.CharField(max_length=200, unique=True, verbose_name="Tên tác vụ")
-    task = models.CharField(max_length=255, help_text="Đường dẫn đến script, ví dụ: worker/run.sh", verbose_name="Đường dẫn Script")
-    cron_schedule = models.CharField(max_length=100, help_text="Định dạng Crontab, ví dụ: '*/5 * * * *' để chạy mỗi 5 phút", verbose_name="Lịch chạy (Cron)")
-    is_active = models.BooleanField(default=True, verbose_name="Đang hoạt động")
-    last_run_at = models.DateTimeField(null=True, blank=True, editable=False, verbose_name="Lần chạy cuối")
-
-    def __str__(self):
-        return self.name
-
-    class Meta:
-        verbose_name = "Tác vụ định kỳ"
-        verbose_name_plural = "Danh sách tác vụ định kỳ"
-
-
 class ColumnMapping(models.Model):
-    project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, related_name="column_mappings", verbose_name="Cấu hình Dự án")    
+    project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, related_name="column_mappings", verbose_name="Cấu hình Dự án")
     internal_name = models.CharField(max_length=50, verbose_name="Tên", help_text="Tên dùng trong code, ví dụ: 'key', 'price', 'policy'. Viết liền, không dấu.")
     display_name = models.CharField(max_length=100, verbose_name="Mô tả", help_text="Tên sẽ hiển thị trong các thông báo.")
     aliases = models.JSONField(default=list, verbose_name="Các tên tiêu đề có thể có", help_text="Danh sách các tên tiêu đề trong file nguồn, dạng JSON list.")
@@ -92,7 +76,6 @@ class ColumnMapping(models.Model):
         verbose_name = "Ánh xạ Tiêu đề"
         verbose_name_plural = "Các ánh xạ Tiêu đề"
         unique_together = ('project_config', 'internal_name')
-
 
 @receiver(post_save, sender=ProjectConfig)
 def create_default_column_mapping(sender, instance, created, **kwargs):
