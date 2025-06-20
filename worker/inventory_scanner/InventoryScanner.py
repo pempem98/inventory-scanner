@@ -1,10 +1,13 @@
 import os
+import re
 import json
 import time
 import logging
 import pandas as pd
 from typing import Dict, List, Any, Optional
 from collections import defaultdict
+from django.conf import settings
+from pathlib import Path
 
 # Import các module đã được tùy chỉnh
 from .DatabaseManager import DatabaseManager
@@ -23,7 +26,8 @@ class InventoryScanner:
         """
         Khởi tạo InventoryScanner.
         """
-        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "app.db")
+        db_path = Path(settings.DATABASES['default']['NAME'])
+        logger.info(f"Đang sử dụng database tại: {db_path}")
         self.db_manager = DatabaseManager(db_file=db_path)
         self.proxies = proxies
         if bot_token:
@@ -118,8 +122,10 @@ class InventoryScanner:
 
     def _normalize_and_validate_key(self, key: Any, prefixes: Optional[List[str]]) -> Optional[str]:
         if not isinstance(key, (str, int, float)): return None
-        clean_key = str(key).strip().upper()
-        if not clean_key: return None
+        match = re.search(r'[A-Z0-9_.\-]+', str(key).strip().upper())
+        if not match: return None
+        clean_key = match.group(0)
+        if len(clean_key) < 5: return None
         if not prefixes: return clean_key
         for prefix in prefixes:
             if clean_key.startswith(prefix.upper()):
@@ -147,6 +153,7 @@ class InventoryScanner:
         for index, row in data_rows_df.iterrows():
             raw_key = row.iloc[identifier_col_idx]
             valid_key = self._normalize_and_validate_key(raw_key, valid_prefixes)
+            logger.info(f"Đang xử lý key: {raw_key} -> {valid_key}")
 
             if valid_key:
                 try:
