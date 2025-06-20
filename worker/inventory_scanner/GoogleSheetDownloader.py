@@ -9,13 +9,7 @@ import re
 import os
 import logging
 
-# Thiết lập logging
-logging.basicConfig(
-    filename='runtime.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    encoding='utf-8'
-)
+logger = logging.getLogger(__name__)
 
 pd.set_option('future.no_silent_downcasting', True)
 requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
@@ -61,13 +55,13 @@ class GoogleSheetDownloader:
             Exception: Nếu không thể truy cập sheet hoặc lỗi mạng.
         """
         html_url = self.html_url or f'https://docs.google.com/spreadsheets/d/{self.spreadsheet_id}/htmlview'
-        logging.info(f"Tải HTML từ: {html_url}")
+        logger.info(f"Tải HTML từ: {html_url}")
         try:
             response = self.session.get(html_url, verify=False)
             response.raise_for_status()
             return html_url, response.text
         except Exception as e:
-            logging.error(f"Lỗi khi tải HTML: {e}")
+            logger.error(f"Lỗi khi tải HTML: {e}")
             raise Exception(f"Lỗi khi tải HTML: {e}")
 
     def extract_css_colors(self, soup: BeautifulSoup) -> dict:
@@ -82,7 +76,7 @@ class GoogleSheetDownloader:
         css_colors = {}
         style_tag = soup.find('style')
         if not style_tag:
-            logging.warning("Không tìm thấy thẻ <style> trong HTML.")
+            logger.warning("Không tìm thấy thẻ <style> trong HTML.")
             return css_colors
 
         css_content = style_tag.get_text()
@@ -96,7 +90,7 @@ class GoogleSheetDownloader:
                 color = f"{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
             css_colors[f's{class_id}'] = color
 
-        logging.info(f"Đã trích xuất {len(css_colors)} màu nền từ CSS")
+        logger.info(f"Đã trích xuất {len(css_colors)} màu nền từ CSS")
         return css_colors
 
     def parse_html_to_data(self, html_content: str) -> Tuple[List[List[str]], List[List[str]]]:
@@ -189,10 +183,10 @@ class GoogleSheetDownloader:
             if not data:
                 raise Exception("Không có dữ liệu nào được lấy từ sheet.")
 
-            logging.info(f"Đã xử lý {merged_count} vùng merged cells trong bảng")
+            logger.info(f"Đã xử lý {merged_count} vùng merged cells trong bảng")
             return data, colors
         except Exception as e:
-            logging.error(f"Lỗi khi parse HTML: {e}")
+            logger.error(f"Lỗi khi parse HTML: {e}")
             raise Exception(f"Lỗi khi parse HTML: {e}")
 
     def process_data(self, data: List[List[str]], colors: List[List[str]]) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame]]:
@@ -208,20 +202,20 @@ class GoogleSheetDownloader:
         try:
             data_df = pd.DataFrame(data)
             if data_df.empty:
-                logging.warning("Dữ liệu rỗng sau khi bỏ hàng 1.")
+                logger.warning("Dữ liệu rỗng sau khi bỏ hàng 1.")
                 return None, None
             data_df = data_df.iloc[:, 1:]
             if data_df.empty:
-                logging.warning("Dữ liệu rỗng sau khi bỏ cột 1.")
+                logger.warning("Dữ liệu rỗng sau khi bỏ cột 1.")
                 return None, None
 
             color_df = pd.DataFrame(colors)
             if color_df.empty:
-                logging.warning("Màu nền rỗng sau khi bỏ hàng 1.")
+                logger.warning("Màu nền rỗng sau khi bỏ hàng 1.")
                 return data_df, None
             color_df = color_df.iloc[:, 1:]
             if color_df.empty:
-                logging.warning("Màu nền rỗng sau khi bỏ cột 1.")
+                logger.warning("Màu nền rỗng sau khi bỏ cột 1.")
                 return data_df, None
 
             # Thay thế chuỗi rỗng và khoảng trắng bằng np.nan, nhưng giữ nguyên cấu trúc
@@ -232,12 +226,12 @@ class GoogleSheetDownloader:
             color_df = color_df.loc[:data_df.index[-1], :data_df.columns[-1]]
 
             if data_df.empty:
-                logging.warning("Dữ liệu rỗng sau khi xử lý.")
+                logger.warning("Dữ liệu rỗng sau khi xử lý.")
                 return None, None
-            logging.info(f"Đã xử lý dữ liệu: {data_df.shape[0]} hàng, {data_df.shape[1]} cột")
+            logger.info(f"Đã xử lý dữ liệu: {data_df.shape[0]} hàng, {data_df.shape[1]} cột")
             return data_df, color_df
         except Exception as e:
-            logging.error(f"Lỗi khi xử lý dữ liệu: {e}")
+            logger.error(f"Lỗi khi xử lý dữ liệu: {e}")
             raise Exception(f"Lỗi khi xử lý dữ liệu: {e}")
 
     def download(self) -> Tuple[Optional[pd.DataFrame], Optional[pd.DataFrame], str]:
@@ -257,11 +251,11 @@ class GoogleSheetDownloader:
             data_df, color_df = self.process_data(data, colors)
 
             if data_df is None:
-                logging.warning("Dữ liệu rỗng sau khi xử lý.")
+                logger.warning("Dữ liệu rỗng sau khi xử lý.")
                 return None, None, download_url
 
             return data_df, color_df, download_url
 
         except Exception as e:
-            logging.error(f"Lỗi khi tải và xử lý Google Sheet: {e}")
+            logger.error(f"Lỗi khi tải và xử lý Google Sheet: {e}")
             return None, None, download_url

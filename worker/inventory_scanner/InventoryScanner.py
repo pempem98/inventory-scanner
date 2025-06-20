@@ -7,17 +7,11 @@ from typing import Dict, List, Any, Optional
 from collections import defaultdict
 
 # Import các module đã được tùy chỉnh
-from DatabaseManager import DatabaseManager
-from GoogleSheetDownloader import GoogleSheetDownloader
-from TelegramNotifier import TelegramNotifier
+from .DatabaseManager import DatabaseManager
+from .GoogleSheetDownloader import GoogleSheetDownloader
+from .TelegramNotifier import TelegramNotifier
 
-# Thiết lập logging
-logging.basicConfig(
-    filename='runtime.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    encoding='utf-8'
-)
+logger = logging.getLogger(__name__)
 
 class InventoryScanner:
     """
@@ -36,7 +30,7 @@ class InventoryScanner:
             self.notifier = TelegramNotifier(bot_token=bot_token, proxies=self.proxies)
         else:
             self.notifier = None
-            logging.warning("Không có BOT_TOKEN, sẽ không có thông báo nào được gửi.")
+            logger.warning("Không có BOT_TOKEN, sẽ không có thông báo nào được gửi.")
 
     def _find_header_and_columns(self, df: pd.DataFrame, config: dict, mappings: List[Dict]) -> Optional[Dict[str, Any]]:
         """
@@ -51,12 +45,12 @@ class InventoryScanner:
             Một dictionary chứa thông tin về header và vị trí các cột, hoặc None nếu thất bại.
         """
         if not mappings:
-            logging.error(f"Dự án {config['project_name']} không có cấu hình cột (column mappings) nào.")
+            logger.error(f"Dự án {config['project_name']} không có cấu hình cột (column mappings) nào.")
             return None
 
         identifier_map = next((m for m in mappings if m.get('is_identifier')), None)
         if not identifier_map:
-            logging.error(f"Dự án {config['project_name']} không có cột nào được đánh dấu là 'is_identifier: true'.")
+            logger.error(f"Dự án {config['project_name']} không có cột nào được đánh dấu là 'is_identifier: true'.")
             return None
 
         header_row_idx = -1
@@ -67,7 +61,7 @@ class InventoryScanner:
             try:
                 identifier_aliases = {str(alias).lower() for alias in json.loads(identifier_map.get('aliases', '[]'))}
                 if not identifier_aliases:
-                    logging.error(f"Cột định danh '{identifier_map['internal_name']}' không có 'aliases' nào được cấu hình.")
+                    logger.error(f"Cột định danh '{identifier_map['internal_name']}' không có 'aliases' nào được cấu hình.")
                     return None
 
                 for i, row in df.head(10).iterrows():
@@ -76,11 +70,11 @@ class InventoryScanner:
                         header_row_idx = i
                         break
             except json.JSONDecodeError:
-                logging.error(f"Lỗi JSON trong 'aliases' của cột định danh cho dự án {config['project_name']}.")
+                logger.error(f"Lỗi JSON trong 'aliases' của cột định danh cho dự án {config['project_name']}.")
                 return None
 
         if header_row_idx == -1:
-            logging.error(f"Không thể tự động tìm thấy hàng header cho dự án {config['project_name']}.")
+            logger.error(f"Không thể tự động tìm thấy hàng header cho dự án {config['project_name']}.")
             return None
 
         def normalize_column_name(name: str):
@@ -105,15 +99,15 @@ class InventoryScanner:
                         continue
                 column_indices[internal_key] = col_idx
             except json.JSONDecodeError:
-                logging.error(f"Lỗi JSON trong 'aliases' của cột '{internal_key}' cho dự án {config['project_name']}.")
+                logger.error(f"Lỗi JSON trong 'aliases' của cột '{internal_key}' cho dự án {config['project_name']}.")
                 column_indices[internal_key] = None
 
         identifier_key_name = identifier_map['internal_name']
         if column_indices.get(identifier_key_name) is None:
-            logging.error(f"Không tìm thấy cột định danh '{identifier_key_name}' trong header của dự án {config['project_name']}.")
+            logger.error(f"Không tìm thấy cột định danh '{identifier_key_name}' trong header của dự án {config['project_name']}.")
             return None
 
-        logging.info(f"Đã xác định header ở dòng {header_row_idx + 1}. Các chỉ số cột: {column_indices}")
+        logger.info(f"Đã xác định header ở dòng {header_row_idx + 1}. Các chỉ số cột: {column_indices}")
 
         return {
             "header_row_idx": header_row_idx,
@@ -158,7 +152,7 @@ class InventoryScanner:
                 try:
                     cell_color = color_rows_df.loc[index].iloc[identifier_col_idx]
                     if cell_color and cell_color.lower() in invalid_colors:
-                        logging.info(f"Bỏ qua key '{valid_key}' do có màu không hợp lệ: {cell_color}")
+                        logger.info(f"Bỏ qua key '{valid_key}' do có màu không hợp lệ: {cell_color}")
                         continue
                 except (KeyError, IndexError):
                     pass
@@ -214,12 +208,12 @@ class InventoryScanner:
         return {'added': added, 'removed': removed, 'changed': changed}
 
     def run(self):
-        logging.info("="*50)
-        logging.info("BẮT ĐẦU PHIÊN LÀM VIỆC MỚI")
+        logger.info("="*50)
+        logger.info("BẮT ĐẦU PHIÊN LÀM VIỆC MỚI")
 
         active_configs = self.db_manager.get_active_configs()
         if not active_configs:
-            logging.warning("Không có cấu hình nào đang hoạt động trong database. Kết thúc.")
+            logger.warning("Không có cấu hình nào đang hoạt động trong database. Kết thúc.")
             return
 
         all_individual_results = []
@@ -229,7 +223,8 @@ class InventoryScanner:
             project_name = config['project_name']
             config_id = config['id']
 
-            print(f"\n▶️  Đang xử lý: {agent_name} - {project_name} (ID: {config_id})")
+            print("="*20)
+            print(f"▶️  Đang xử lý: {agent_name} - {project_name} (ID: {config_id})")
 
             try:
                 mappings = self.db_manager.get_column_mappings(config_id)
@@ -242,12 +237,12 @@ class InventoryScanner:
                 current_df, color_df, download_url = downloader.download()
 
                 if current_df is None or color_df is None or current_df.empty:
-                    logging.error(f"Không tải được dữ liệu hoặc màu sắc cho ID {config_id}.")
+                    logger.error(f"Không tải được dữ liệu hoặc màu sắc cho ID {config_id}.")
                     continue
 
                 header_info = self._find_header_and_columns(current_df, config, mappings)
                 if not header_info:
-                    logging.error(f"Không xác định được header/cột cho ID {config_id}.")
+                    logger.error(f"Không xác định được header/cột cho ID {config_id}.")
                     continue
 
                 new_snapshot = self._extract_snapshot_data(current_df, color_df, header_info, config)
@@ -273,10 +268,11 @@ class InventoryScanner:
                 print(f"    -> Đã lưu snapshot mới với {len(new_snapshot)} keys.")
 
             except Exception as e:
-                logging.exception(f"Lỗi nghiêm trọng khi xử lý cấu hình ID {config_id}: {e}")
+                logger.exception(f"Lỗi nghiêm trọng khi xử lý cấu hình ID {config_id}: {e}")
                 print(f"    ❌ Lỗi: {e}. Kiểm tra runtime.log để biết chi tiết.")
 
-        print("\n🔄 Đang tổng hợp và gom nhóm kết quả...")
+        print("="*20)
+        print("🔄 Đang tổng hợp và gom nhóm kết quả...")
         aggregated_results = defaultdict(lambda: {'added': [], 'removed': [], 'changed': [], 'telegram_chat_id': None})
 
         for result in all_individual_results:
@@ -316,7 +312,8 @@ class InventoryScanner:
                 time.sleep(3)
 
         self.db_manager.close()
-        print("\n✅ Hoàn thành tất cả các tác vụ.")
+        print("="*20)
+        print("✅ Hoàn thành tất cả các tác vụ.")
 
 
 if __name__ == "__main__":

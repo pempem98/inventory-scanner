@@ -4,13 +4,7 @@ import requests
 import logging
 from typing import Dict, Any, List
 
-# Thiết lập logging
-logging.basicConfig(
-    filename='runtime.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    encoding='utf-8'
-)
+logger = logging.getLogger(__name__)
 
 class TelegramNotifier:
     """Class để gửi tin nhắn và tài liệu đến một chat Telegram cụ thể."""
@@ -25,7 +19,7 @@ class TelegramNotifier:
         """
         if not bot_token:
             raise ValueError("Bot token không được để trống.")
-        
+
         self.bot_token = bot_token
         self.proxies = proxies
         self.base_url = f"https://api.telegram.org/bot{self.bot_token}"
@@ -39,7 +33,7 @@ class TelegramNotifier:
             message_text: Nội dung tin nhắn. Hỗ trợ định dạng HTML.
         """
         if not chat_id:
-            logging.warning("chat_id trống, không thể gửi tin nhắn.")
+            logger.warning("chat_id trống, không thể gửi tin nhắn.")
             return
 
         try:
@@ -51,17 +45,17 @@ class TelegramNotifier:
                 'disable_web_page_preview': True
             }
             response = requests.post(url, json=payload, proxies=self.proxies, timeout=15)
-            
+
             if response.status_code == 200:
-                logging.info(f"Đã gửi tin nhắn thành công đến chat_id {chat_id}.")
+                logger.info(f"Đã gửi tin nhắn thành công đến chat_id {chat_id}.")
             else:
-                logging.error(f"Lỗi khi gửi tin nhắn đến {chat_id}: {response.status_code} - {response.text}")
-                logging.error(f"Nội dung tin nhắn lỗi: {message_text[:200]}...")
+                logger.error(f"Lỗi khi gửi tin nhắn đến {chat_id}: {response.status_code} - {response.text}")
+                logger.error(f"Nội dung tin nhắn lỗi: {message_text[:200]}...")
 
         except requests.exceptions.RequestException as e:
-            logging.error(f"Lỗi RequestException khi gửi tin nhắn đến {chat_id}: {e}")
+            logger.error(f"Lỗi RequestException khi gửi tin nhắn đến {chat_id}: {e}")
         except Exception as e:
-            logging.error(f"Lỗi không xác định khi gửi tin nhắn: {e}")
+            logger.error(f"Lỗi không xác định khi gửi tin nhắn: {e}")
 
     def format_message(self, result: Dict[str, Any]) -> str:
         """
@@ -70,14 +64,14 @@ class TelegramNotifier:
         agent_name = result.get('agent_name', 'Không xác định')
         project_name = result.get('project_name', 'Không xác định')
         comparison = result.get('comparison', {})
-        
+
         added = sorted(list(set(comparison.get('added', []))))
         removed = sorted(list(set(comparison.get('removed', []))))
         changed = comparison.get('changed', [])
-        
+
         # Chỉ tạo tin nhắn nếu có ít nhất một thay đổi
         if not added and not removed and not changed:
-            return "" 
+            return ""
 
         message = f"🏢 <b>Đại lý:</b> {agent_name}\n"
         message += f"📋 <b>Dự án:</b> {project_name}\n\n"
@@ -93,11 +87,11 @@ class TelegramNotifier:
             message += f"✅ <b>Đã bán ({len(removed)}):</b>\n<blockquote>{removed_str}</blockquote>\n\n"
         else:
             message += "✅ <b>Đã bán:</b> Không có\n\n"
-            
+
         if changed:
             changed_str = "\n".join([f"<b>{c['key']}</b>: {c['old']} → {c['new']}" for c in changed])
             message += f"✏️ <b>Thay đổi ({len(changed)}):</b>\n<blockquote>{changed_str}</blockquote>"
         else:
             message += "✏️ <b>Thay đổi:</b> Không có"
-            
+
         return message.strip()

@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.utils.html import format_html, escape
 from django.utils.safestring import mark_safe
 
-from .models import Agent, ProjectConfig, Snapshot, ScheduledTask, ColumnMapping
+from .models import Agent, ProjectConfig, Snapshot, ColumnMapping
 
 
 @admin.register(Agent)
@@ -72,7 +72,7 @@ class SnapshotAdmin(admin.ModelAdmin):
             return "Lỗi định dạng JSON"
         except Exception:
             return "Lỗi không xác định"
-        
+
     @admin.display(description="Quỹ căn hộ (dạng bảng)")
     def display_pretty_data(self, obj):
         """
@@ -86,16 +86,16 @@ class SnapshotAdmin(admin.ModelAdmin):
 
             nested_headers = list(next(iter(data.values())).keys())
             headers = ["Mã căn hộ"] + nested_headers
-            
+
             table_style = "width:100%; border-collapse: collapse; border: 1px solid #ccc;"
             th_style = "border: 1px solid #ccc; padding: 8px; text-align: left; background-color: #f2f2f2; font-weight: bold;"
             td_style = "border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top;"
-            
+
             html = f'<table style="{table_style}"><thead><tr>'
             for header in headers:
                 html += f'<th style="{th_style}">{escape(header)}</th>'
             html += '</tr></thead>'
-            
+
             html += '<tbody>'
             for key, row_data in data.items():
                 html += '<tr>'
@@ -114,11 +114,3 @@ class SnapshotAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
-    
-
-@admin.register(ScheduledTask)
-class ScheduledTaskAdmin(admin.ModelAdmin):
-    list_display = ('name', 'task', 'cron_schedule', 'is_active', 'last_run_at')
-    list_filter = ('is_active',)
-    search_fields = ('name', 'task')
-    readonly_fields = ('last_run_at',)

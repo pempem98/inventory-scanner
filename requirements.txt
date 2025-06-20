@@ -1,5 +1,8 @@
-bs4==0.0.2
-pandas==2.3.0
-requests==2.32.4
-requests-kerberos==0.15.0
+beautifulsoup4==4.13.4
+django-celery-beat==2.8.1
 django==5.2.3
+gevent==25.5.1
+pandas==2.3.0
+redis==6.2.0
+requests-kerberos==0.15.0
+requests==2.32.4
