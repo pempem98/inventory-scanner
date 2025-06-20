@@ -1,0 +1,75 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  redis:
+    image: "redis:alpine"
+    hostname: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  app:
+    build: .
+    container_name: saleadmintoolkit-app
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - db_data:/app/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    ports:
+      - "8888:8000"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m" # Kích thước tối đa của một file log
+        max-file: "5"   # Số lượng file log tối đa sẽ được giữ lại
+
+  celery-worker:
+    build: .
+    container_name: saleadmintoolkit-worker
+    command: celery -A configuration.celery worker -l info -P gevent
+    volumes:
+      - .:/app
+      - db_data:/app/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - app
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  celery-beat:
+    build: .
+    container_name: saleadmintoolkit-beat
+    command: celery -A configuration.celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+      - db_data:/app/data
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - app
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  db_data:
+  redis_data:
