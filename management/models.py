@@ -86,7 +86,6 @@ def create_default_column_mapping(sender, instance, created, **kwargs):
             defaults={
                 "display_name": "Mã căn hộ",
                 "aliases": [
-                    "Mã",
                     "Mã căn",
                     "Mã căn hộ",
                 ],
