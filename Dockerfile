@@ -8,6 +8,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     libkrb5-dev \
+    sqlite3 \
+    redis-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Sao chép file requirements.txt trước để tận dụng cache của Docker

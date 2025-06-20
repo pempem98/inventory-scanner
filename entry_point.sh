@@ -1,5 +1,13 @@
 #!/bin/sh
 
+# Khởi động Redis Server ở chế độ nền
+echo "--- Starting Redis Server in background ---"
+redis-server --daemonize yes
+
+# Đợi một vài giây để đảm bảo Redis đã sẵn sàng nhận kết nối
+echo "--- Waiting for Redis to start... ---"
+sleep 3
+
 echo "==== Starting Celery Services in Background ===="
 # Đảm bảo script run_celery.sh có quyền thực thi
 chmod +x ./run_celery.sh
