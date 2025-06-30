@@ -5,7 +5,7 @@
 
 echo "==== Pulling latest changes from Git... ===="
 # (Tùy chọn) Lấy code mới nhất từ repository của bạn
-git pull origin production
+# git pull origin production
 
 echo "==== Stopping and removing old containers... ===="
 # Dừng và xóa tất cả các container được định nghĩa trong docker-compose.yml

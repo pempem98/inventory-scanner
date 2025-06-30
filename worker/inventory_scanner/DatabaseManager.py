@@ -2,6 +2,7 @@ import sqlite3
 import logging
 import json
 import datetime
+from datetime import timezone
 from typing import List, Optional, Any, Dict
 
 logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ class DatabaseManager:
         """Thêm một snapshot mới cho một cấu hình dự án."""
         try:
             cursor = self.conn.cursor()
-            current_timestamp = datetime.datetime.now()
+            current_timestamp = datetime.datetime.now(timezone.utc)
             cursor.execute("""
                 INSERT INTO management_snapshot (timestamp, project_config_id, data)
                 VALUES (?, ?, ?);

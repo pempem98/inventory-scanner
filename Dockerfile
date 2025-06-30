@@ -1,5 +1,5 @@
 # Sử dụng image Python chính thức
-FROM python:3.12.6
+FROM python:3.12.6-slim
 
 # Đặt thư mục làm việc trong container
 WORKDIR /app

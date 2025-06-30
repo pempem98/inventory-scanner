@@ -13,7 +13,7 @@ services:
 
   app:
     build: .
-    container_name: saleadmintoolkit-app
+    container_name: web-app
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
@@ -34,7 +34,7 @@ services:
 
   celery-worker:
     build: .
-    container_name: saleadmintoolkit-worker
+    container_name: web-worker
     command: celery -A configuration.celery worker -l info -P gevent
     volumes:
       - .:/app
@@ -43,6 +43,7 @@ services:
       - ./backups:/app/backups
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
+      - TELEGRAM_BOT_TOKEN=8067863112:AAGgxTH48MEXmtK8IMvOIKWtiFa5yGcf4C0
     depends_on:
       - app
     logging:
@@ -53,7 +54,7 @@ services:
 
   celery-beat:
     build: .
-    container_name: saleadmintoolkit-beat
+    container_name: web-beat
     command: celery -A configuration.celery beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - .:/app

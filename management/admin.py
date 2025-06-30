@@ -65,8 +65,8 @@ class SnapshotAdmin(admin.ModelAdmin):
                 return "---"
 
             keys = sorted(keys)
-            display_text = ", ".join(keys)
-            return format_html('<div style="max-width: 400px; word-wrap: break-word;">{}</div>', display_text)
+            display_text = " ".join(keys)
+            return format_html('<div style="max-width: 400px;">{}</div>', display_text)
 
         except json.JSONDecodeError:
             return "Lỗi định dạng JSON"
