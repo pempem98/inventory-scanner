@@ -88,40 +88,32 @@ class DatabaseManager:
 
         try:
             cursor = self.conn.cursor()
-            
-            # 1. Lấy tất cả các căn hiện có trong DB cho project này
+
             cursor.execute("SELECT unit_code, sales_policy FROM management_apartmentunit WHERE project_config_id = ?", (project_config_id,))
             db_units = {row['unit_code']: dict(row) for row in cursor.fetchall()}
             db_unit_codes = set(db_units.keys())
-            
-            # 2. Lấy mã căn từ snapshot mới
-            snapshot_unit_codes = set(new_snapshot.keys())
 
-            # 3. Tìm các căn cần XÓA
+            snapshot_unit_codes = set(new_snapshot.keys())
             units_to_remove = db_unit_codes - snapshot_unit_codes
             if units_to_remove:
                 params_to_delete = [(project_config_id, code) for code in units_to_remove]
                 cursor.executemany("DELETE FROM management_apartmentunit WHERE project_config_id = ? AND unit_code = ?", params_to_delete)
                 logger.info(f"[{project_config_id}] Đã xóa {len(units_to_remove)} căn khỏi quỹ căn.")
 
-            # 4. Tìm các căn cần THÊM hoặc CẬP NHẬT
             units_to_add = []
             units_to_update = []
             timestamp = datetime.datetime.now(timezone.utc)
 
             for unit_code, unit_data in new_snapshot.items():
-                new_policy = unit_data.get('sales_policy') # Lấy CSBH từ snapshot
-                
+                new_policy = unit_data.get('sales_policy')
+
                 if unit_code not in db_unit_codes:
-                    # Căn mới -> Thêm
                     units_to_add.append((project_config_id, unit_code, new_policy, timestamp, timestamp))
                 else:
-                    # Căn đã có -> Kiểm tra xem CSBH có thay đổi không
                     current_policy = db_units[unit_code].get('sales_policy')
                     if current_policy != new_policy:
                         units_to_update.append((new_policy, timestamp, project_config_id, unit_code))
 
-            # 5. Thực thi lệnh
             if units_to_add:
                 cursor.executemany(
                     "INSERT INTO management_apartmentunit (project_config_id, unit_code, sales_policy, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
@@ -143,6 +135,23 @@ class DatabaseManager:
 
         except sqlite3.Error as e:
             logger.error(f"Lỗi khi đồng bộ quỹ căn cho project_config_id {project_config_id}: {e}")
+            self.conn.rollback()
+
+    def add_inventory_change(self, project_config_id: int, change_type: str, apartment_key: str, details: Dict[str, Any]):
+        """Thêm một bản ghi thay đổi vào bảng InventoryChange."""
+        if not self.conn:
+            return
+        try:
+            cursor = self.conn.cursor()
+            current_timestamp = datetime.datetime.now(timezone.utc)
+            cursor.execute("""
+                INSERT INTO management_inventorychange (project_config_id, timestamp, change_type, apartment_key, details)
+                VALUES (?, ?, ?, ?, ?);
+            """, (project_config_id, current_timestamp, change_type, apartment_key, json.dumps(details, ensure_ascii=False)))
+            self.conn.commit()
+            logger.info(f"Đã ghi nhận thay đổi '{change_type}' cho căn hộ '{apartment_key}' của dự án {project_config_id}")
+        except sqlite3.Error as e:
+            logger.error(f"Lỗi khi thêm bản ghi InventoryChange: {e}")
             self.conn.rollback()
 
     def get_column_mappings(self, project_config_id):

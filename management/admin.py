@@ -3,7 +3,6 @@ from django.contrib import admin
 from django.utils.html import format_html, escape
 from django.utils.safestring import mark_safe
 
-# Import các model chính xác từ models.py
 from .models import Agent, Project, ProjectConfig, Snapshot, InventoryChange
 from .models import ColumnMapping, WorkerLog, ApartmentUnit
 

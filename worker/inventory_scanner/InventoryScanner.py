@@ -234,9 +234,20 @@ class InventoryScanner:
                 if old_snapshot is not None:
                     comparison = self._compare_snapshots(new_snapshot, old_snapshot)
                     print(f"    -> So sánh hoàn tất: {len(comparison['added'])} thêm, {len(comparison['removed'])} bán, {len(comparison['changed'])} đổi.")
+
+                    for key in comparison.get('added', []):
+                        self.db_manager.add_inventory_change(config_id, 'added', key, {})
+
+                    for key in comparison.get('removed', []):
+                        self.db_manager.add_inventory_change(config_id, 'removed', key, {})
+
+                    for change in comparison.get('changed', []):
+                        self.db_manager.add_inventory_change(config_id, 'changed', change['key'], {'changes': change['changes']})
                 else:
                     comparison = {'added': list(new_snapshot.keys()), 'removed': [], 'changed': []}
                     print("    -> Lần đầu chạy, ghi nhận toàn bộ là căn mới.")
+                    for key in comparison.get('added', []):
+                        self.db_manager.add_inventory_change(config_id, 'added', key, {})
 
                 if any(comparison.values()):
                     all_individual_results.append({

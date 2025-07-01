@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 import json
 
 
@@ -92,7 +93,7 @@ def create_default_column_mapping(sender, instance, created, **kwargs):
     if created:
         ColumnMapping.objects.get_or_create(
             project_config=instance,
-            internal_name='key',
+            internal_name='apartment_code',
             defaults={
                 "display_name": "Mã căn hộ",
                 "aliases": [
@@ -104,7 +105,7 @@ def create_default_column_mapping(sender, instance, created, **kwargs):
         )
         ColumnMapping.objects.get_or_create(
             project_config=instance,
-            internal_name='price',
+            internal_name='early_price',
             defaults={
                 "display_name": "Giá TTS",
                 "aliases": [
@@ -128,7 +129,7 @@ def create_default_column_mapping(sender, instance, created, **kwargs):
         )
         ColumnMapping.objects.get_or_create(
             project_config=instance,
-            internal_name='policy',
+            internal_name='sales_policy',
             defaults={
                 "display_name": "CSBH",
                 "aliases": [
@@ -154,25 +155,50 @@ class WorkerLog(models.Model):
         ordering = ['-timestamp']
 
 class InventoryChange(models.Model):
-    CHANGE_TYPES = (
+    """
+    Model to log every change (add, remove, modify) in the inventory
+    for each project.
+    """
+    CHANGE_TYPES = [
         ('added', 'Thêm mới'),
         ('removed', 'Đã bán'),
         ('changed', 'Thay đổi'),
+    ]
+    project_config = models.ForeignKey(
+        'ProjectConfig',
+        on_delete=models.CASCADE,
+        verbose_name="Dự án"
     )
-
-    project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, verbose_name="Dự án")
-    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian")
-    change_type = models.CharField(max_length=10, choices=CHANGE_TYPES, verbose_name="Loại thay đổi")
-    apartment_key = models.CharField(max_length=100, verbose_name="Mã căn hộ")
-    details = models.JSONField(default=dict, blank=True, null=True, verbose_name="Chi tiết")
-
-    def __str__(self):
-        return f"{self.get_change_type_display()} - {self.apartment_key} ({self.project_config.project_name})"
+    timestamp = models.DateTimeField(
+        default=timezone.now,
+        verbose_name="Thời điểm"
+    )
+    change_type = models.CharField(
+        max_length=10,
+        choices=CHANGE_TYPES,
+        verbose_name="Loại thay đổi"
+    )
+    apartment_key = models.CharField(
+        max_length=255,
+        verbose_name="Mã căn hộ"
+    )
+    details = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="Chi tiết"
+    )
 
     class Meta:
         verbose_name = "Lịch sử thay đổi"
-        verbose_name_plural = "5. Lịch sử Thay đổi"
+        verbose_name_plural = "5. Lịch sử thay đổi"
         ordering = ['-timestamp']
+
+    def __str__(self):
+        """
+        Returns a human-readable string representation of the object,
+        which is used in the Django admin interface.
+        """
+        return f"{self.get_change_type_display()}: {self.apartment_key} ({self.project_config})"
 
 class ApartmentUnit(models.Model):
     """Đại diện cho một căn hộ (một hàng) trong giỏ hàng của một đại lý."""
@@ -182,8 +208,8 @@ class ApartmentUnit(models.Model):
         related_name='units',
         help_text="Cấu hình dự án chứa căn hộ này."
     )
-    unit_code = models.CharField(max_length=255, help_text="Mã định danh của căn hộ.")
-    sales_policy = models.TextField(blank=True, null=True, help_text="Chính sách bán hàng áp dụng cho riêng căn hộ này.")
+    unit_code = models.CharField(max_length=255, help_text="Mã định danh của căn hộ.", verbose_name="Mã căn hộ")
+    sales_policy = models.TextField(blank=True, null=True, verbose_name="CSBH", help_text="Chính sách bán hàng áp dụng cho riêng căn hộ này.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
