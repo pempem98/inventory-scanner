@@ -17,64 +17,73 @@ class Agent(models.Model):
 
     class Meta:
         verbose_name = "Đại lý"
-        verbose_name_plural = "Danh sách đại lý"
+        verbose_name_plural = "1. Danh sách đại lý"
+
+
+class Project(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Tên dự án")
+    telegram_chat_id = models.CharField(max_length=50, blank=True, null=True, verbose_name="Telegram Chat ID")
+    key_prefixes = models.JSONField(default=list, blank=True, verbose_name="Các tiền tố của mã căn hộ")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Dự án"
+        verbose_name_plural = "2. Danh sách Dự án"
+        ordering = ['name']
+
 
 class ProjectConfig(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name="Dự án")
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, verbose_name="Đại lý")
-    project_name = models.CharField(max_length=100, verbose_name="Tên dự án")
 
-    # Thông tin cấu hình
+    # Thông tin cấu hình nguồn dữ liệu
     spreadsheet_id = models.CharField(max_length=200, blank=True, null=True)
-    gid = models.CharField(max_length=100)
+    gid = models.CharField(max_length=100, blank=True)
     html_url = models.URLField(max_length=500, blank=True, null=True)
-    telegram_chat_id = models.CharField(max_length=50, blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="Đang hoạt động")
-
-    # Cấu hình tìm kiếm và xác thực
     header_row_index = models.PositiveIntegerField(blank=True, null=True, verbose_name="Dòng header (số)")
-    key_prefixes = models.JSONField(default=list, verbose_name="Các tiền tố của mã căn hộ")
     invalid_colors = models.JSONField(default=get_default_invalid_colors, blank=True, verbose_name="Các màu không hợp lệ")
 
     def __str__(self):
-        return f"{self.agent.name} - {self.project_name}"
+        return f"{self.project.name} ({self.agent.name})"
 
     def clean(self):
         super().clean()
         if not self.spreadsheet_id and not self.html_url:
-            raise ValidationError(
-                "Bạn phải điền ít nhất một trong hai trường 'Spreadsheet ID' hoặc 'HTML URL'."
-            )
+            raise ValidationError("Bạn phải điền ít nhất 'Spreadsheet ID' hoặc 'HTML URL'.")
 
     class Meta:
-        verbose_name = "Đại lý & Dự án"
-        verbose_name_plural = "Danh sách các dự án"
+        verbose_name = "Cấu hình Dự án"
+        verbose_name_plural = "3. Cấu hình các Dự án"
 
 class Snapshot(models.Model):
-    project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, verbose_name="Đại lý & Dự án")
+    project_data_source = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, verbose_name="Nguồn dữ liệu dự án")
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian tạo")
     data = models.TextField(verbose_name="Bản ghi quỹ căn hộ")
 
     def __str__(self):
-        return f"Snapshot của '{self.project_config}' lúc {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+        return f"Snapshot của '{self.project_data_source}' lúc {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
 
     class Meta:
         verbose_name = "Bản ghi quỹ căn hộ"
-        verbose_name_plural = "Danh sách bản ghi quỹ căn hộ"
+        verbose_name_plural = "6. Danh sách Bản ghi"
         ordering = ['-timestamp']
 
 class ColumnMapping(models.Model):
     project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, related_name="column_mappings", verbose_name="Cấu hình Dự án")
-    internal_name = models.CharField(max_length=50, verbose_name="Tên", help_text="Tên dùng trong code, ví dụ: 'key', 'price', 'policy'. Viết liền, không dấu.")
-    display_name = models.CharField(max_length=100, verbose_name="Mô tả", help_text="Tên sẽ hiển thị trong các thông báo.")
-    aliases = models.JSONField(default=list, verbose_name="Các tên tiêu đề có thể có", help_text="Danh sách các tên tiêu đề trong file nguồn, dạng JSON list.")
-    is_identifier = models.BooleanField(default=False, verbose_name="Là cột định danh?", help_text="Tích vào đây nếu đây là cột chứa mã định danh duy nhất (ví dụ: Mã căn hộ).")
+    internal_name = models.CharField(max_length=50, verbose_name="Tên nội bộ", help_text="Tên dùng trong code, ví dụ: 'key', 'price'. Viết liền, không dấu.")
+    display_name = models.CharField(max_length=100, verbose_name="Tên hiển thị", help_text="Tên sẽ hiển thị trong các thông báo.")
+    aliases = models.JSONField(default=list, blank=True, verbose_name="Các tên tiêu đề có thể có", help_text="Danh sách các tên tiêu đề trong file nguồn.")
+    is_identifier = models.BooleanField(default=False, verbose_name="Là cột định danh?", help_text="Đánh dấu nếu đây là cột mã định danh.")
 
     def __str__(self):
-        return f"{self.display_name} (cho {self.project_config.project_name})"
+        return f"{self.display_name} (cho {self.project_config})"
 
     class Meta:
-        verbose_name = "Ánh xạ Tiêu đề"
-        verbose_name_plural = "Các ánh xạ Tiêu đề"
+        verbose_name = "Ánh xạ cột"
+        verbose_name_plural = "Ánh xạ các Cột"
         unique_together = ('project_config', 'internal_name')
 
 @receiver(post_save, sender=ProjectConfig)
@@ -129,3 +138,37 @@ def create_default_column_mapping(sender, instance, created, **kwargs):
                 "is_identifier": False
             }
         )
+
+class WorkerLog(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian")
+    level = models.CharField(max_length=50, verbose_name="Cấp độ")
+    message = models.TextField(verbose_name="Nội dung")
+
+    def __str__(self):
+        return f"[{self.timestamp}] {self.level}: {self.message}"
+
+    class Meta:
+        verbose_name = "Log của Worker"
+        verbose_name_plural = "7. Log của Worker"
+        ordering = ['-timestamp']
+
+class InventoryChange(models.Model):
+    CHANGE_TYPES = (
+        ('added', 'Thêm mới'),
+        ('removed', 'Đã bán'),
+        ('changed', 'Thay đổi'),
+    )
+
+    project_config = models.ForeignKey(ProjectConfig, on_delete=models.CASCADE, verbose_name="Dự án")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Thời gian")
+    change_type = models.CharField(max_length=10, choices=CHANGE_TYPES, verbose_name="Loại thay đổi")
+    apartment_key = models.CharField(max_length=100, verbose_name="Mã căn hộ")
+    details = models.JSONField(default=dict, blank=True, null=True, verbose_name="Chi tiết")
+
+    def __str__(self):
+        return f"{self.get_change_type_display()} - {self.apartment_key} ({self.project_config.project_name})"
+
+    class Meta:
+        verbose_name = "Lịch sử thay đổi"
+        verbose_name_plural = "5. Lịch sử Thay đổi"
+        ordering = ['-timestamp']

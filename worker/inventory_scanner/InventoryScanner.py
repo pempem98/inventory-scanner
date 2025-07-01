@@ -30,6 +30,7 @@ class InventoryScanner:
         logger.info(f"Đang sử dụng database tại: {db_path}")
         self.db_manager = DatabaseManager(db_file=db_path)
         self.proxies = proxies
+        print(f'Proxy: {proxies}')
         if bot_token:
             self.notifier = TelegramNotifier(bot_token=bot_token, proxies=self.proxies)
         else:
@@ -239,7 +240,7 @@ class InventoryScanner:
                     spreadsheet_id=config.get('spreadsheet_id'),
                     html_url=config.get('html_url'),
                     gid=config['gid'],
-                    proxies=self.proxies
+                    proxies=self.proxies,
                 )
                 current_df, color_df, download_url = downloader.download()
 

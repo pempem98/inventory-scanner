@@ -26,10 +26,20 @@ class DatabaseManager:
         try:
             cursor = self.conn.cursor()
             cursor.execute("""
-                SELECT pc.*, a.name as agent_name
-                FROM management_projectconfig pc
-                JOIN management_agent a ON pc.agent_id = a.id
-                WHERE pc.is_active = 1;
+                SELECT
+                    pc.*,
+                    p.name as project_name,
+                    p.key_prefixes,
+                    p.telegram_chat_id,
+                    a.name as agent_name
+                FROM
+                    management_projectconfig pc
+                JOIN
+                    management_agent a ON pc.agent_id = a.id
+                JOIN
+                    management_project p ON pc.project_id = p.id
+                WHERE
+                    pc.is_active = 1;
             """)
             return cursor.fetchall()
         except sqlite3.Error as e:
@@ -42,7 +52,7 @@ class DatabaseManager:
             cursor = self.conn.cursor()
             cursor.execute("""
                 SELECT data FROM management_snapshot
-                WHERE project_config_id = ?
+                WHERE project_data_source_id = ?
                 ORDER BY timestamp DESC
                 LIMIT 1;
             """, (project_config_id,))
@@ -58,7 +68,7 @@ class DatabaseManager:
             cursor = self.conn.cursor()
             current_timestamp = datetime.datetime.now(timezone.utc)
             cursor.execute("""
-                INSERT INTO management_snapshot (timestamp, project_config_id, data)
+                INSERT INTO management_snapshot (timestamp, project_data_source_id, data)
                 VALUES (?, ?, ?);
             """, (current_timestamp, project_config_id, json.dumps(data, ensure_ascii=False)))
             self.conn.commit()

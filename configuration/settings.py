@@ -149,6 +149,10 @@ LOGGING = {
         },
     },
     'handlers': {
+        'db_log': {
+            'level': 'INFO',
+            'class': 'management.db_log_handler.DatabaseLogHandler',
+        },
         'runtime_file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
@@ -166,9 +170,15 @@ LOGGING = {
     },
     'loggers': {
         '': {
-            'handlers': ['runtime_file', 'console'],
+            'handlers': ['runtime_file', 'console', 'db_log'],
             'level': 'INFO',
             'propagate': True,
+        },
+        # Tắt db_log cho logger của django.db.backends để tránh ghi log vô hạn
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
 }
