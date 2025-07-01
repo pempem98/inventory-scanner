@@ -26,11 +26,15 @@ def scan_all_inventories_task():
         bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
         if not bot_token:
             raise RuntimeError("Lỗi: Vui lòng thiết lập biến môi trường TELEGRAM_BOT_TOKEN.")
-        
+
         # Khởi tạo scanner với token, không dùng proxy
-        scanner = InventoryScanner(bot_token=bot_token, proxies=None)
+        proxies = {
+            'http': 'http://rb-proxy-apac.bosch.com:8080',
+            'https': 'http://rb-proxy-apac.bosch.com:8080'
+        }
+        scanner = InventoryScanner(bot_token=bot_token, proxies=proxies)
         scanner.run()
-        
+
         logger.info("Hoàn thành tác vụ quét kho hàng thành công.")
         return "Scan completed successfully."
     except Exception as e:

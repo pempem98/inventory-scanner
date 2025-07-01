@@ -3,8 +3,8 @@ from django.contrib import admin
 from django.utils.html import format_html, escape
 from django.utils.safestring import mark_safe
 
-from .models import Agent, ProjectConfig, Snapshot, ColumnMapping
-
+from .models import Agent, Project, ProjectConfig, Snapshot, InventoryChange
+from .models import ColumnMapping, WorkerLog, ApartmentUnit
 
 @admin.register(Agent)
 class AgentAdmin(admin.ModelAdmin):
@@ -12,6 +12,11 @@ class AgentAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     list_display_links = ('id', 'name')
 
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'key_prefixes', 'telegram_chat_id')
+    search_fields = ('name', 'telegram_chat_id')
+    list_display_links = ('id', 'name')
 
 class ColumnMappingInline(admin.TabularInline):
     model = ColumnMapping
@@ -20,97 +25,112 @@ class ColumnMappingInline(admin.TabularInline):
     verbose_name = "Cột tùy chỉnh"
     verbose_name_plural = "Các cột tùy chỉnh"
 
-
 @admin.register(ProjectConfig)
 class ProjectConfigAdmin(admin.ModelAdmin):
-    list_display = ('id', 'agent', 'project_name', 'spreadsheet_id', 'html_url', 'gid', 'is_active')
-    list_filter = ('is_active', 'agent', 'project_name')
-    search_fields = ('project_name', 'agent__name', 'spreadsheet_id', 'html_url', 'gid')
-    ordering = ('agent', 'project_name')
-    list_display_links = ('id',)
+    list_display = ('id', '__str__', 'is_active', 'view_source_link')
+    list_filter = ('project__name', 'agent__name', 'is_active')
+    search_fields = ('project__name', 'agent__name')
+    ordering = ('project__name', 'agent__name')
+    list_display_links = ('id', '__str__')
     fieldsets = (
-        ('Thông tin chung', {'fields': ('agent', 'project_name', 'is_active')}),
+        ('Thông tin chung', {'fields': ('project', 'agent', 'is_active')}),
         ('Nguồn dữ liệu', {'fields': ('spreadsheet_id', 'gid', 'html_url')}),
-        ('Cấu hình xử lý', {
-            'classes': (),
-            'fields': ('header_row_index', 'key_prefixes', 'invalid_colors')
-        }),
-        ('Thông báo', {'fields': ('telegram_chat_id',)})
+        ('Cấu hình xử lý', {'fields': ('header_row_index', 'invalid_colors')}),
     )
     inlines = [ColumnMappingInline]
+
+    @admin.display(description="Link nguồn")
+    def view_source_link(self, obj):
+        if obj.spreadsheet_id:
+            url = f"https://docs.google.com/spreadsheets/d/{obj.spreadsheet_id}/edit#gid={obj.gid}"
+            return format_html('<a href="{}" target="_blank">Mở Sheet</a>', url)
+        if obj.html_url:
+            return format_html('<a href="{}/#{}" target="_blank">Mở HTML</a>', obj.html_url, obj.gid)
+        return "N/A"
 
 
 @admin.register(Snapshot)
 class SnapshotAdmin(admin.ModelAdmin):
-    """Tùy chỉnh hiển thị cho Snapshot"""
-    list_display = ('id', 'project_config', 'timestamp', 'display_inventory')
-    list_filter = ('project_config', 'timestamp')
-    search_fields = ('project_config__project_name', 'data')
-    readonly_fields = ('project_config', 'timestamp', 'display_pretty_data')
-    fields = ('project_config', 'timestamp', 'display_pretty_data')
-
-    @admin.display(description="Hàng tồn (Mã căn hộ)")
-    def display_inventory(self, obj):
-        """
-        Phương thức này đọc trường `data` (dạng JSON),
-        trích xuất các mã căn hộ và hiển thị chúng.
-        """
-        try:
-            inventory_data = json.loads(obj.data)
-            if not isinstance(inventory_data, dict):
-                return "Định dạng dữ liệu không hợp lệ"
-
-            keys = list(inventory_data.keys())
-            if not keys:
-                return "---"
-
-            keys = sorted(keys)
-            display_text = " ".join(keys)
-            return format_html('<div style="max-width: 400px;">{}</div>', display_text)
-
-        except json.JSONDecodeError:
-            return "Lỗi định dạng JSON"
-        except Exception:
-            return "Lỗi không xác định"
+    list_display = ('id', 'project_data_source', 'timestamp')
+    list_filter = ('project_data_source__project__name', 'project_data_source__agent__name', 'timestamp')
+    search_fields = ('project_data_source__project__name', 'project_data_source__agent__name', 'data')
+    readonly_fields = ('project_data_source', 'timestamp', 'display_pretty_data')
+    fields = ('project_data_source', 'timestamp', 'display_pretty_data')
+    ordering = ('-timestamp',)
 
     @admin.display(description="Quỹ căn hộ (dạng bảng)")
     def display_pretty_data(self, obj):
-        """
-        Định dạng chuỗi JSON thành một bảng HTML để dễ đọc.
-        """
         try:
             data = json.loads(obj.data)
             if not isinstance(data, dict) or not data:
-                pretty_json = json.dumps(data, indent=4, ensure_ascii=False)
-                return mark_safe(f'<pre style="background-color: #1d1f21; color: #c5c8c6; padding: 15px; border-radius: 5px;"><code>{pretty_json}</code></pre>')
-
-            nested_headers = list(next(iter(data.values())).keys())
-            headers = ["Mã căn hộ"] + nested_headers
-
-            table_style = "width:100%; border-collapse: collapse; border: 1px solid #ccc;"
-            th_style = "border: 1px solid #ccc; padding: 8px; text-align: left; background-color: #f2f2f2; font-weight: bold;"
-            td_style = "border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top;"
-
-            html = f'<table style="{table_style}"><thead><tr>'
-            for header in headers:
-                html += f'<th style="{th_style}">{escape(header)}</th>'
-            html += '</tr></thead>'
-
-            html += '<tbody>'
+                return mark_safe(f"<pre><code>{escape(json.dumps(data, indent=2, ensure_ascii=False))}</code></pre>")
+            first_item = next(iter(data.values()), {})
+            headers = list(first_item.keys()) if isinstance(first_item, dict) else []
+            html = '<table class="fixed-table"><thead><tr><th>Mã căn hộ</th>'
+            for h in headers: html += f"<th>{escape(h)}</th>"
+            html += '</tr></thead><tbody>'
             for key, row_data in data.items():
-                html += '<tr>'
-                for i, header in enumerate(headers):
-                    value = key if i == 0 else row_data.get(header, "")
-                    html += f'<td style="{td_style}">{escape(value)}</td>'
+                html += f'<tr><td>{escape(key)}</td>'
+                if isinstance(row_data, dict):
+                    for h in headers: html += f'<td>{escape(row_data.get(h, ""))}</td>'
+                else: html += f'<td colspan="{len(headers)}">{escape(row_data)}</td>'
                 html += '</tr>'
             html += '</tbody></table>'
-
             return mark_safe(html)
-
-        except json.JSONDecodeError:
-            return format_html('<div style="color: red;">Lỗi định dạng JSON.</div>')
-        except Exception as e:
-            return format_html('<div style="color: red;">Lỗi không xác định khi dựng bảng: {}</div>', str(e))
+        except Exception: return "Lỗi hiển thị dữ liệu."
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(WorkerLog)
+class WorkerLogAdmin(admin.ModelAdmin):
+    list_display = ('timestamp', 'level', 'message')
+    list_filter = ('level', 'timestamp')
+    search_fields = ('message',)
+    readonly_fields = ('timestamp', 'level', 'message')
+
+    def has_add_permission(self, request):
+        return False
+    def has_change_permission(self, request, obj=None):
+        return False
+
+@admin.register(InventoryChange)
+class InventoryChangeAdmin(admin.ModelAdmin):
+    list_display = ('timestamp', 'project_config', 'change_type', 'apartment_key', 'details')
+    list_filter = ('change_type', 'timestamp')
+    search_fields = ('apartment_key',)
+    readonly_fields = ('timestamp', 'project_config', 'change_type', 'apartment_key', 'details')
+    ordering = ('-timestamp',)
+
+
+@admin.register(ApartmentUnit)
+class ApartmentUnitAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'get_project_data_source',
+        'unit_code',
+        'sales_policy',
+        'get_source_url',
+    )
+    list_display_links = ('id', 'unit_code')
+    search_fields = ('unit_code', 'project_config__project__name', 'project_config__agent__name')
+    list_filter = ('project_config__project', 'project_config__agent')
+    list_select_related = ('project_config', 'project_config__project')
+
+    @admin.display(description="Nguồn dữ liệu dự án")
+    def get_project_data_source(self, obj):
+        """Lấy tên của ProjectConfig."""
+        return str(obj.project_config)
+
+    @admin.display(description="Link nguồn")
+    def get_source_url(self, obj):
+        """Hiển thị link nguồn dưới dạng một liên kết có thể nhấp."""
+        config = obj.project_config
+        if config and config.gid:
+            if config.spreadsheet_id:
+                url = f"https://docs.google.com/spreadsheets/d/{config.spreadsheet_id}/edit#gid={config.gid}"
+                return format_html('<a href="{}" target="_blank">Mở Sheet</a>', url)
+            if obj.html_url:
+                return format_html('<a href="{}/#{}" target="_blank">Mở HTML</a>', config.html_url, config.gid)
+        return "N/A"
