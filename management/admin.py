@@ -4,7 +4,8 @@ from django.utils.html import format_html, escape
 from django.utils.safestring import mark_safe
 
 # Import các model chính xác từ models.py
-from .models import Agent, Project, ProjectConfig, Snapshot, InventoryChange, ColumnMapping, WorkerLog
+from .models import Agent, Project, ProjectConfig, Snapshot, InventoryChange
+from .models import ColumnMapping, WorkerLog, ApartmentUnit
 
 @admin.register(Agent)
 class AgentAdmin(admin.ModelAdmin):
@@ -102,3 +103,35 @@ class InventoryChangeAdmin(admin.ModelAdmin):
     search_fields = ('apartment_key',)
     readonly_fields = ('timestamp', 'project_config', 'change_type', 'apartment_key', 'details')
     ordering = ('-timestamp',)
+
+
+@admin.register(ApartmentUnit)
+class ApartmentUnitAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'get_project_data_source',
+        'unit_code',
+        'sales_policy',
+        'get_source_url',
+    )
+    list_display_links = ('id', 'unit_code')
+    search_fields = ('unit_code', 'project_config__project__name', 'project_config__agent__name')
+    list_filter = ('project_config__project', 'project_config__agent')
+    list_select_related = ('project_config', 'project_config__project')
+
+    @admin.display(description="Nguồn dữ liệu dự án")
+    def get_project_data_source(self, obj):
+        """Lấy tên của ProjectConfig."""
+        return str(obj.project_config)
+
+    @admin.display(description="Link nguồn")
+    def get_source_url(self, obj):
+        """Hiển thị link nguồn dưới dạng một liên kết có thể nhấp."""
+        config = obj.project_config
+        if config and config.gid:
+            if config.spreadsheet_id:
+                url = f"https://docs.google.com/spreadsheets/d/{config.spreadsheet_id}/edit#gid={config.gid}"
+                return format_html('<a href="{}" target="_blank">Mở Sheet</a>', url)
+            if obj.html_url:
+                return format_html('<a href="{}/#{}" target="_blank">Mở HTML</a>', config.html_url, config.gid)
+        return "N/A"

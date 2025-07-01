@@ -37,6 +37,7 @@ class Project(models.Model):
 class ProjectConfig(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, verbose_name="Dự án")
     agent = models.ForeignKey(Agent, on_delete=models.CASCADE, verbose_name="Đại lý")
+    # source_url = models.URLField(max_length=1024, help_text="URL tới file giỏ hàng (Google Sheet, Excel Online, ...)")
 
     # Thông tin cấu hình nguồn dữ liệu
     spreadsheet_id = models.CharField(max_length=200, blank=True, null=True)
@@ -47,7 +48,7 @@ class ProjectConfig(models.Model):
     invalid_colors = models.JSONField(default=get_default_invalid_colors, blank=True, verbose_name="Các màu không hợp lệ")
 
     def __str__(self):
-        return f"{self.project.name} ({self.agent.name})"
+        return f"{self.agent.name} - {self.project.name}"
 
     def clean(self):
         super().clean()
@@ -172,3 +173,24 @@ class InventoryChange(models.Model):
         verbose_name = "Lịch sử thay đổi"
         verbose_name_plural = "5. Lịch sử Thay đổi"
         ordering = ['-timestamp']
+
+class ApartmentUnit(models.Model):
+    """Đại diện cho một căn hộ (một hàng) trong giỏ hàng của một đại lý."""
+    project_config = models.ForeignKey(
+        ProjectConfig,
+        on_delete=models.CASCADE,
+        related_name='units',
+        help_text="Cấu hình dự án chứa căn hộ này."
+    )
+    unit_code = models.CharField(max_length=255, help_text="Mã định danh của căn hộ.")
+    sales_policy = models.TextField(blank=True, null=True, help_text="Chính sách bán hàng áp dụng cho riêng căn hộ này.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Quỹ Căn Hộ"
+        verbose_name_plural = "4. Danh sách quỹ căn"
+        unique_together = ('project_config', 'unit_code')
+
+    def __str__(self):
+        return self.unit_code
