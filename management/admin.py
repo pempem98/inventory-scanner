@@ -1,10 +1,22 @@
+# management/admin.py
+
 import json
 from django.contrib import admin
 from django.utils.html import format_html, escape
 from django.utils.safestring import mark_safe
 
 from .models import Agent, Project, ProjectConfig, Snapshot, InventoryChange
-from .models import ColumnMapping, WorkerLog, ApartmentUnit
+from .models import ColumnMapping, WorkerLog, ApartmentUnit, SystemConfig
+
+@admin.register(SystemConfig)
+class SystemConfigAdmin(admin.ModelAdmin):
+    list_display = ('id', '__str__', 'telegram_bot_token', 'proxy_url')
+
+    def has_add_permission(self, request):
+        return SystemConfig.objects.count() == 0
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 @admin.register(Agent)
 class AgentAdmin(admin.ModelAdmin):
@@ -27,36 +39,79 @@ class ColumnMappingInline(admin.TabularInline):
 
 @admin.register(ProjectConfig)
 class ProjectConfigAdmin(admin.ModelAdmin):
-    list_display = ('id', '__str__', 'is_active', 'view_source_link')
+    # Yêu cầu 1: Thêm spreadsheet_id, html_url, gid vào list_display
+    list_display = ('id', '__str__', 'is_active', 'spreadsheet_id', 'html_url', 'gid', 'view_source_url')
     list_filter = ('project__name', 'agent__name', 'is_active')
-    search_fields = ('project__name', 'agent__name')
+    search_fields = ('project__name', 'agent__name', 'spreadsheet_id', 'html_url')
     ordering = ('project__name', 'agent__name')
     list_display_links = ('id', '__str__')
+    readonly_fields = ('display_source_url',)
+
     fieldsets = (
         ('Thông tin chung', {'fields': ('project', 'agent', 'is_active')}),
-        ('Nguồn dữ liệu', {'fields': ('spreadsheet_id', 'gid', 'html_url')}),
+        ('Nguồn dữ liệu', {
+            'fields': ('display_source_url', 'spreadsheet_id', 'html_url', 'gid'),
+            'description': 'Cấu hình nguồn dữ liệu để quét. Bạn có thể dùng Google Sheet (Spreadsheet ID và GID) hoặc một trang URL (HTML URL và GID).'
+        }),
         ('Cấu hình xử lý', {'fields': ('header_row_index', 'invalid_colors')}),
     )
     inlines = [ColumnMappingInline]
 
-    @admin.display(description="Link nguồn")
-    def view_source_link(self, obj):
-        if obj.spreadsheet_id:
-            url = f"https://docs.google.com/spreadsheets/d/{obj.spreadsheet_id}/edit#gid={obj.gid}"
-            return format_html('<a href="{}" target="_blank">Mở Sheet</a>', url)
-        if obj.html_url:
-            return format_html('<a href="{}/#{}" target="_blank">Mở HTML</a>', obj.html_url, obj.gid)
-        return "N/A"
+    @admin.display(description="Source URL")
+    def display_source_url(self, obj):
+        """
+        Tạo và hiển thị một liên kết URL có thể nhấp được.
+        """
+        link = "Vui lòng nhập nguồn cho link và lưu lại để xem."
+        if obj.gid:
+            if obj.spreadsheet_id and len(str(obj.spreadsheet_id)):
+                url = f"https://docs.google.com/spreadsheets/d/{obj.spreadsheet_id}/edit#gid={obj.gid}"
+                link = format_html('<a href="{}" target="_blank">{}</a>', url, url)
+            elif obj.html_url and len(obj.html_url):
+                anchor = f"#{str(obj.gid).strip('#')}" if f"{obj.gid}" else ""
+                url = f"{str(obj.html_url).strip('/')}/{anchor}"
+                link = format_html('<a href="{}" target="_blank">{}</a>', url, url)
+        return link
 
+    @admin.display(description="Link nguồn")
+    def view_source_url(self, obj):
+        if obj.gid:
+            if obj.spreadsheet_id:
+                url = f"https://docs.google.com/spreadsheets/d/{obj.spreadsheet_id}/edit#gid={obj.gid}"
+                return format_html('<a href="{}" target="_blank">Mở Sheet</a>', url)
+            if obj.html_url:
+                # GID trong trường hợp này có thể là ID của table hoặc anchor
+                anchor = f"#{obj.gid}" if obj.gid else ""
+                return format_html('<a href="{}{}" target="_blank">Mở HTML</a>', obj.html_url, anchor)
+        return "N/A"
 
 @admin.register(Snapshot)
 class SnapshotAdmin(admin.ModelAdmin):
-    list_display = ('id', 'project_data_source', 'timestamp')
+    # Yêu cầu 2: Thêm cột hiển thị các mã căn hộ
+    list_display = ('id', 'project_data_source', 'timestamp', 'display_apartment_codes')
     list_filter = ('project_data_source__project__name', 'project_data_source__agent__name', 'timestamp')
     search_fields = ('project_data_source__project__name', 'project_data_source__agent__name', 'data')
     readonly_fields = ('project_data_source', 'timestamp', 'display_pretty_data')
     fields = ('project_data_source', 'timestamp', 'display_pretty_data')
     ordering = ('-timestamp',)
+
+    @admin.display(description="Các mã căn hộ (một phần)")
+    def display_apartment_codes(self, obj):
+        """Hiển thị 5 mã căn hộ đầu tiên từ bản ghi."""
+        try:
+            data = json.loads(obj.data)
+            # Lấy 5 'key' đầu tiên (là mã căn hộ)
+            keys = list(data.keys())[:5]
+            if not keys:
+                return "(Không có dữ liệu)"
+
+            # Nối các key lại và thêm '...' nếu có nhiều hơn 5
+            display_text = ", ".join(keys)
+            if len(data.keys()) > 5:
+                display_text += ", ..."
+            return display_text
+        except (json.JSONDecodeError, AttributeError):
+            return "Lỗi định dạng dữ liệu"
 
     @admin.display(description="Quỹ căn hộ (dạng bảng)")
     def display_pretty_data(self, obj):
@@ -82,7 +137,6 @@ class SnapshotAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
 
-
 @admin.register(WorkerLog)
 class WorkerLogAdmin(admin.ModelAdmin):
     list_display = ('timestamp', 'level', 'message')
@@ -103,7 +157,6 @@ class InventoryChangeAdmin(admin.ModelAdmin):
     readonly_fields = ('timestamp', 'project_config', 'change_type', 'apartment_key', 'details')
     ordering = ('-timestamp',)
 
-
 @admin.register(ApartmentUnit)
 class ApartmentUnitAdmin(admin.ModelAdmin):
     list_display = (
@@ -120,17 +173,16 @@ class ApartmentUnitAdmin(admin.ModelAdmin):
 
     @admin.display(description="Nguồn dữ liệu dự án")
     def get_project_data_source(self, obj):
-        """Lấy tên của ProjectConfig."""
         return str(obj.project_config)
 
     @admin.display(description="Link nguồn")
     def get_source_url(self, obj):
-        """Hiển thị link nguồn dưới dạng một liên kết có thể nhấp."""
         config = obj.project_config
         if config and config.gid:
             if config.spreadsheet_id:
                 url = f"https://docs.google.com/spreadsheets/d/{config.spreadsheet_id}/edit#gid={config.gid}"
                 return format_html('<a href="{}" target="_blank">Mở Sheet</a>', url)
-            if obj.html_url:
-                return format_html('<a href="{}/#{}" target="_blank">Mở HTML</a>', config.html_url, config.gid)
+            if config.html_url:
+                anchor = f"#{config.gid}" if config.gid else ""
+                return format_html('<a href="{}{}" target="_blank">Mở HTML</a>', config.html_url, anchor)
         return "N/A"

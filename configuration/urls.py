@@ -19,8 +19,8 @@ from django.urls import path
 
 admin.site.site_header = "Sale Admin Toolkit"
 admin.site.site_title = "Sale Admin Toolkit"
-admin.site.index_title = "Administration Portal"
+admin.site.index_title = "SAT Portal"
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('', admin.site.urls),
 ]

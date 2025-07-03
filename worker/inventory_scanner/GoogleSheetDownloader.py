@@ -39,7 +39,7 @@ class GoogleSheetDownloader:
         self.gid = gid
         self.html_url = html_url
         session = requests.Session()
-        if proxies is not None:
+        if False and (proxies is not None):
             session.proxies = proxies
             session.mount('http://', HTTPAdapterWithProxyKerberosAuth())
             session.mount('https://', HTTPAdapterWithProxyKerberosAuth())
@@ -109,7 +109,7 @@ class GoogleSheetDownloader:
             soup = BeautifulSoup(html_content, 'html.parser')
             css_colors = self.extract_css_colors(soup)
 
-            div = soup.find('div', id=self.gid)
+            div = soup.find('div', id=self.gid.strip('#'))
             if not div:
                 raise Exception(f"Không tìm thấy div với id={self.gid} trong HTML.")
 

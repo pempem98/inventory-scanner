@@ -26,8 +26,21 @@ SECRET_KEY = 'django-insecure-2mv0wn-!m5fr*$rt8eer*dqn91k8$mcr!7&t8d5#k*06tw#wtr
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'admin.masterisehomes.id.vn',
+    'real-estate.io.vn',
+    'google.com',
+    'localhost',
+    '127.0.0.1',
+]
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://admin.masterisehomes.id.vn',
+    'https://real-estate.io.vn',
+    'https://google.com',
+    'http://127.0.0.1:8888',
+    'http://localhost:8888',
+]
 
 # Application definition
 
