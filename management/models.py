@@ -10,6 +10,49 @@ def get_default_invalid_colors():
     """Trả về danh sách các màu không hợp lệ mặc định."""
     return ["#ff0000", "#ea4335"]
 
+class SystemConfig(models.Model):
+    """
+    Model để lưu trữ các cài đặt toàn cục cho hệ thống (Singleton Pattern).
+    Chỉ nên có một bản ghi duy nhất của model này.
+    """
+    telegram_bot_token = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Telegram Bot Token",
+        help_text="Token cho bot Telegram để gửi thông báo."
+    )
+    proxy_url = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="URL Proxy",
+        help_text="URL proxy để các worker sử dụng cho request, ví dụ: http://user:pass@host:port"
+    )
+
+    def save(self, *args, **kwargs):
+        """
+        Ghi đè phương thức save để đảm bảo chỉ có một instance duy nhất.
+        """
+        self.pk = 1
+        super(SystemConfig, self).save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        """
+        Tải instance duy nhất của cấu hình.
+        """
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return "Cấu hình hệ thống"
+
+    class Meta:
+        verbose_name = "Cấu hình hệ thống"
+        verbose_name_plural = "0. Cấu hình hệ thống"
+
+
 class Agent(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Tên đại lý")
 
@@ -43,7 +86,7 @@ class ProjectConfig(models.Model):
     # Thông tin cấu hình nguồn dữ liệu
     spreadsheet_id = models.CharField(max_length=200, blank=True, null=True)
     gid = models.CharField(max_length=100, blank=True)
-    html_url = models.URLField(max_length=500, blank=True, null=True)
+    html_url = models.CharField(max_length=500, blank=True, null=True)
     is_active = models.BooleanField(default=True, verbose_name="Đang hoạt động")
     header_row_index = models.PositiveIntegerField(blank=True, null=True, verbose_name="Dòng header (số)")
     invalid_colors = models.JSONField(default=get_default_invalid_colors, blank=True, verbose_name="Các màu không hợp lệ")
@@ -136,6 +179,19 @@ def create_default_column_mapping(sender, instance, created, **kwargs):
                     'CSBH',
                     'CSBH Ngày',
                     'Chính sách',
+                ],
+                "is_identifier": False
+            }
+        )
+        ColumnMapping.objects.get_or_create(
+            project_config=instance,
+            internal_name='link_ptg',
+            defaults={
+                "display_name": "Phiếu tính giá",
+                "aliases": [
+                    "PTG",
+                    "Phiếu TG",
+                    "Link PTG",
                 ],
                 "is_identifier": False
             }
