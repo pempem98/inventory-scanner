@@ -54,13 +54,15 @@ class InventoryScanner:
             header_row_idx = int(config_header_idx) - 1
         else:
             try:
-                identifier_aliases = {str(alias).lower() for alias in json.loads(identifier_map.get('aliases', '[]'))}
+                identifier_aliases = {re.sub(rf'\s|\n', '', str(alias).lower(), flags=re.DOTALL) \
+                                    for alias in json.loads(identifier_map.get('aliases', '[]'))}
                 if not identifier_aliases:
                     logger.error(f"Cột định danh '{identifier_map['internal_name']}' không có 'aliases' nào được cấu hình.")
                     return None
 
                 for i, row in df.head(10).iterrows():
-                    row_values = {str(val).strip().lower() for val in row.dropna().values}
+                    row_values = {re.sub(rf'\s|\n', '', str(val).lower(), flags=re.DOTALL) \
+                                for val in row.dropna().values}
                     if not identifier_aliases.isdisjoint(row_values):
                         header_row_idx = i
                         break
