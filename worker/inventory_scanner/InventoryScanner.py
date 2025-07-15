@@ -143,6 +143,7 @@ class InventoryScanner:
         for index, row in data_rows_df.iterrows():
             raw_key = row.iloc[identifier_col_idx]
             valid_key = self._normalize_and_validate_key(raw_key, valid_prefixes)
+            logger.info(f"Đang xử lý key: {raw_key} -> {valid_key}")
 
             if valid_key:
                 try:
