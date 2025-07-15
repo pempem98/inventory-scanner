@@ -1,36 +1,15 @@
-# management/tasks.py
-
 import os
 import logging
 import shutil
-<<<<<<< HEAD
-<<<<<<< HEAD
 from datetime import datetime, timedelta
-=======
-from datetime import datetime
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
 from pathlib import Path
 
 from celery import shared_task
 from django.conf import settings
-<<<<<<< HEAD
 from django.utils import timezone
 from worker.inventory_scanner.InventoryScanner import InventoryScanner
 from .models import SystemConfig, WorkerLog, InventoryChange, Snapshot
 
-=======
-from datetime import datetime
-from pathlib import Path
-
-from celery import shared_task
-from django.conf import settings
-from worker.inventory_scanner.InventoryScanner import InventoryScanner
-
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
-=======
-from worker.inventory_scanner.InventoryScanner import InventoryScanner
-
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
 # Lấy ra logger đã được cấu hình sẵn bởi Django/Celery
 logger = logging.getLogger(__name__)
 
@@ -43,7 +22,6 @@ def scan_all_inventories_task():
     """
     logger.info("Bắt đầu tác vụ quét kho hàng...")
     try:
-<<<<<<< HEAD
         # Tải cấu hình từ database
         config = SystemConfig.load()
         bot_token = config.telegram_bot_token
@@ -61,20 +39,6 @@ def scan_all_inventories_task():
         scanner = InventoryScanner(bot_token=bot_token, proxies=proxies)
         scanner.run()
 
-=======
-        # Khởi tạo và chạy scanner
-        bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-        if not bot_token:
-            raise RuntimeError("Lỗi: Vui lòng thiết lập biến môi trường TELEGRAM_BOT_TOKEN.")
-        
-        # Khởi tạo scanner với token, không dùng proxy
-        scanner = InventoryScanner(bot_token=bot_token, proxies=None)
-        scanner.run()
-        
-<<<<<<< HEAD
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
-=======
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
         logger.info("Hoàn thành tác vụ quét kho hàng thành công.")
         return "Scan completed successfully."
     except Exception as e:
@@ -82,8 +46,6 @@ def scan_all_inventories_task():
         return f"Scan failed with error: {e}"
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 @shared_task(name="tasks.cleanup_old_records")
 def cleanup_old_records_task():
     """
@@ -113,10 +75,6 @@ def cleanup_old_records_task():
         return f"Cleanup failed: {e}"
 
 
-=======
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
-=======
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
 @shared_task(name="tasks.backup_database")
 def backup_database_task():
     """
@@ -125,8 +83,6 @@ def backup_database_task():
     """
     # Lấy đường dẫn database từ settings
     db_source_path = Path(settings.DATABASES['default']['NAME'])
-<<<<<<< HEAD
-<<<<<<< HEAD
 
     # Định nghĩa thư mục chứa các bản backup (đường dẫn bên trong container)
     backup_dir = Path("/app/backups")
@@ -136,45 +92,15 @@ def backup_database_task():
     # Đảm bảo thư mục backup tồn tại
     backup_dir.mkdir(parents=True, exist_ok=True)
 
-=======
-=======
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
-    
-    # Định nghĩa thư mục chứa các bản backup (đường dẫn bên trong container)
-    backup_dir = Path("/app/backups")
-    
-    logger.info(f"Bắt đầu tác vụ sao lưu database từ: {db_source_path}")
-    
-    # Đảm bảo thư mục backup tồn tại
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    
-<<<<<<< HEAD
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
-=======
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
     # Tạo tên file backup với timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_file_name = f"app_backup_{timestamp}.db"
     db_backup_path = backup_dir / backup_file_name
-<<<<<<< HEAD
-<<<<<<< HEAD
 
     if not db_source_path.exists():
         logger.error(f"Không tìm thấy file database nguồn tại: {db_source_path}")
         return "Source database not found."
 
-=======
-=======
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
-    
-    if not db_source_path.exists():
-        logger.error(f"Không tìm thấy file database nguồn tại: {db_source_path}")
-        return "Source database not found."
-        
-<<<<<<< HEAD
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
-=======
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
     try:
         # Thực hiện sao chép file
         shutil.copyfile(db_source_path, db_backup_path)
@@ -182,12 +108,4 @@ def backup_database_task():
         return f"Backup successful: {db_backup_path}"
     except Exception as e:
         logger.error(f"Tạo backup database thất bại: {e}", exc_info=True)
-<<<<<<< HEAD
-<<<<<<< HEAD
         return f"Backup failed: {e}"
-=======
-        return f"Backup failed: {e}"
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))
-=======
-        return f"Backup failed: {e}"
->>>>>>> f1d1374 (Update basic feature relate to sercurity (#31) (#32))

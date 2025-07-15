@@ -26,21 +26,8 @@ SECRET_KEY = 'django-insecure-2mv0wn-!m5fr*$rt8eer*dqn91k8$mcr!7&t8d5#k*06tw#wtr
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [
-    'admin.masterisehomes.id.vn',
-    'real-estate.io.vn',
-    'google.com',
-    'localhost',
-    '127.0.0.1',
-]
+ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://admin.masterisehomes.id.vn',
-    'https://real-estate.io.vn',
-    'https://google.com',
-    'http://127.0.0.1:8888',
-    'http://localhost:8888',
-]
 
 # Application definition
 
@@ -92,8 +79,12 @@ WSGI_APPLICATION = 'configuration.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'data' / 'app.db',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASS'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': '5432',
     }
 }
 os.environ['DATABASE_URL'] = str(DATABASES['default']['NAME'])
@@ -142,7 +133,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # --- CẤU HÌNH CELERY ---
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -162,10 +152,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'db_log': {
-            'level': 'INFO',
-            'class': 'management.db_log_handler.DatabaseLogHandler',
-        },
         'runtime_file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
@@ -183,15 +169,9 @@ LOGGING = {
     },
     'loggers': {
         '': {
-            'handlers': ['runtime_file', 'console', 'db_log'],
+            'handlers': ['runtime_file', 'console'],
             'level': 'INFO',
             'propagate': True,
-        },
-        # Tắt db_log cho logger của django.db.backends để tránh ghi log vô hạn
-        'django.db.backends': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
         },
     },
 }
